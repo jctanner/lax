@@ -1,17 +1,16 @@
 package utils
 
 import (
-    "fmt"
-	"path/filepath"
-    "strings"
-    "os"
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"io"
-
 	//"encoding/json"
 )
 
@@ -254,4 +253,73 @@ func CopyFile(src string, dst string) error {
 	}
 
 	return nil
+}
+
+
+
+func ExtractTarGz(tarGzPath, dest string) error {
+    // Open the tar.gz file
+    file, err := os.Open(tarGzPath)
+    if err != nil {
+        return fmt.Errorf("open tar.gz file: %v", err)
+    }
+    defer file.Close()
+
+    // Create gzip reader
+    uncompressedStream, err := gzip.NewReader(file)
+    if err != nil {
+        return fmt.Errorf("create gzip reader: %v", err)
+    }
+    defer uncompressedStream.Close()
+
+    // Create tar reader
+    tarReader := tar.NewReader(uncompressedStream)
+
+    // Iterate through the files in the archive
+    for {
+        header, err := tarReader.Next()
+        if err == io.EOF {
+            break // End of archive
+        }
+        if err != nil {
+            return fmt.Errorf("read tar header: %v", err)
+        }
+
+        // Determine the target file path
+        target := filepath.Join(dest, header.Name)
+
+        // Ensure the parent directory exists
+        if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+            return fmt.Errorf("create directory: %v", err)
+        }
+
+        switch header.Typeflag {
+        case tar.TypeDir:
+            // Create directory if it does not exist
+            if _, err := os.Stat(target); err != nil {
+                if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+                    return fmt.Errorf("create directory: %v", err)
+                }
+            }
+        case tar.TypeReg:
+            // Create and write to file
+            outFile, err := os.Create(target)
+            if err != nil {
+                return fmt.Errorf("create file: %v", err)
+            }
+            if _, err := io.Copy(outFile, tarReader); err != nil {
+                outFile.Close()
+                return fmt.Errorf("write file: %v", err)
+            }
+            outFile.Close()
+
+            // Set file permissions
+            if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
+                return fmt.Errorf("set file permissions: %v", err)
+            }
+        default:
+            return fmt.Errorf("unsupported file type: %v", header.Typeflag)
+        }
+    }
+    return nil
 }

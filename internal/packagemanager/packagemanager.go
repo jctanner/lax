@@ -1,13 +1,26 @@
 package packagemanager
 
 import (
-    "fmt"
-    "lax/internal/repository"
-    "lax/internal/utils"
-	"path/filepath"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"lax/internal/repository"
+	"lax/internal/utils"
+	"os"
+	"path/filepath"
 )
+
+// gets stored with an installed collection ...
+type GalaxyYamlMeta struct {
+    DownloadUrl string `json:"download_url"`
+    FormatVersion string `json:"format_version"`
+    Name string `json:"name"`
+    Namespace string `json:"namespace"`
+    Server string `json:"server"`
+    Signatures []string `json:"signatures"`
+    Version string `json:"version"`
+    VersionUrl string `json:"version_url"`
+}
 
 type PackageManager struct {
     BasePath string
@@ -69,6 +82,52 @@ func (pkgmgr *PackageManager) ReadRepoMeta() error {
     return nil
 }
 
+func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name string, version string, fn string) error {
+
+    // Basepath / collections / ansible_collections / namespace / name / ...
+    dirPath := filepath.Join(pkgmgr.BasePath, "ansible_collections", namespace, name)
+    dirPath, _ = utils.GetAbsPath(dirPath)
+    fmt.Printf("\t%s\n", dirPath)
+    utils.MakeDirs(dirPath)
+    utils.ExtractTarGz(fn, dirPath)
+
+    // Basepath / collections / ansible_collections / <namespace>.<name>-<version>.info / GALAXY.yml
+    ymlDirName := fmt.Sprintf("%s.%s-%s.info", namespace, name, version)
+    ymlDirPath := filepath.Join(pkgmgr.BasePath, "ansible_collections", ymlDirName)
+    ymlDirPath, _ = utils.GetAbsPath(ymlDirPath)
+    ymlFileName := filepath.Join(ymlDirPath, "GALAXY.tml")
+    utils.MakeDirs(ymlDirPath)
+
+    galaxyYAML := GalaxyYamlMeta{
+        Namespace: namespace,
+        Name: name,
+        Version: version,
+        FormatVersion: "1.0.0",       
+    }
+
+    // Marshal the struct to JSON
+    jsonData, err := json.MarshalIndent(galaxyYAML, "", "  ")
+    if err != nil {
+        fmt.Printf("Error marshaling JSON: %v\n", err)
+        return err
+    }
+
+    // Write the JSON data to a file
+    file, err := os.Create(ymlFileName)
+    if err != nil {
+        fmt.Printf("Error creating file: %v\n", err)
+        return err
+    }
+    defer file.Close()
+
+    if _, err := file.Write(jsonData); err != nil {
+        fmt.Printf("Error writing to file: %v\n", err)
+        return err
+    }
+
+    return nil
+}
+
 func GetPackageManager(basepath string) (PackageManager, error) {
 
     pkgmgr := PackageManager{
@@ -76,9 +135,10 @@ func GetPackageManager(basepath string) (PackageManager, error) {
     }
     err := pkgmgr.Initialize()
     if err != nil {
-        fmt.Errorf("%s\n", err)
+        fmt.Printf("%s\n", err)
         return pkgmgr, err
     }
 
     return pkgmgr, nil
 }
+

@@ -2,10 +2,10 @@ package repository
 
 import (
 	//"cli/repository"
-	"lax/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"lax/internal/utils"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -19,6 +19,7 @@ type RepoClient interface {
 	//GetRepoMeta(cachePath string) (RepoMeta, error)
 	GetRepoMetaDate() (string, error)
 	ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
+	GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) (string)
 }
 
 type FileRepoClient struct {
@@ -120,6 +121,13 @@ func (client *FileRepoClient) GetRepoMetaDate() (string, error) {
 	return client.RepoMeta.Date, nil
 }
 
+func (client *FileRepoClient) GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) string {
+	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
+	fileName := filepath.Join(client.BasePath, "collections", tarName)
+	return fileName
+}
+
+
 func (client *FileRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 
 	// load the collections manifests
@@ -144,6 +152,11 @@ func (client *HttpRepoClient) GetRepoMetaDate() (string, error) {
 	return client.RepoMeta.Date, nil
 }
 
+func (client *HttpRepoClient) GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) string {
+	return ""
+}
+
+
 func (client *HttpRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 	specs := []utils.InstallSpec{}
 	return specs, nil
@@ -160,48 +173,8 @@ func GetRepoClient(repo string, cachePath string) (RepoClient, error) {
 }
 
 func resolveDeps(spec utils.InstallSpec, manifests *[]Manifest, specs *[]utils.InstallSpec) {
-	//fmt.Printf("PROCESS: %s\n", spec)
-	//specs := []utils.InstallSpec{}
 
-	// get the meta for the incoming spec
-	candidates := []Manifest{}
-	for _, manifest := range *manifests {
-		if manifest.CollectionInfo.Namespace != spec.Namespace {
-			continue
-		}
-		if manifest.CollectionInfo.Name != spec.Name {
-			continue
-		}
-
-		//fmt.Printf("\tcheck %s\n", manifest)
-
-		// is it a version with an operator or a range?
-		if spec.Version != "" && spec.Version != "*" {
-
-			op, v2, _ := splitVersion(spec.Version)
-			specVer, _ := semver.Make(v2)
-
-			_, m2, _ := splitVersion(manifest.CollectionInfo.Version)
-			mVer, _ := semver.Make(m2)
-
-			//fmt.Printf("\t\t%s %s %s\n", specVer, op, mVer)
-
-			/*
-				if spec.Version != "" && manifest.CollectionInfo.Version != spec.Version {
-					fmt.Printf("\tignoring %s.%s %s\n", manifest.CollectionInfo.Namespace, manifest.CollectionInfo.Name, manifest.CollectionInfo.Version)
-					continue
-				}
-			*/
-
-			//res, _ := compareVersions(op, mVer, specVer)
-			res, _ := utils.CompareSemVersions(op, &mVer, &specVer)
-			if !res {
-				//fmt.Printf("\tignoring %s.%s %s\n", manifest.CollectionInfo.Namespace, manifest.CollectionInfo.Name, manifest.CollectionInfo.Version)
-				continue
-			}
-		}
-		candidates = append(candidates, manifest)
-	}
+	candidates := SpecToManifestCandidates(spec, manifests)
 
 	// exit early if nothing was found
 	if len(candidates) == 0 {
@@ -225,7 +198,10 @@ func resolveDeps(spec utils.InstallSpec, manifests *[]Manifest, specs *[]utils.I
 		Name:      thisManifest.CollectionInfo.Name,
 		Version:   thisManifest.CollectionInfo.Version,
 	}
-	if specListContains(specs, thisSpec) {
+	if specListContainsNamespaceName(specs, thisSpec) {
+		return
+	}
+	if specListContainsNamespaceNameVersion(specs, thisSpec) {
 		return
 	}
 	*specs = append(*specs, thisSpec)
@@ -247,10 +223,57 @@ func resolveDeps(spec utils.InstallSpec, manifests *[]Manifest, specs *[]utils.I
 	// sort the specs
 	SortInstallSpecs(specs)
 
+	// check for duplicates ... ?
+	DeduplicateSpecs(specs)
+
 	//return specs
 
 }
 
+/*
+Given a utils.InstallSpec, reduce a list of repository.Manifest down to the matching
+candidates via their namespace, name and version (which can include an operator)
+*/
+func SpecToManifestCandidates(spec utils.InstallSpec, manifests *[]Manifest) []Manifest {
+	// get the meta for the incoming spec
+	candidates := []Manifest{}
+	for _, manifest := range *manifests {
+		if manifest.CollectionInfo.Namespace != spec.Namespace {
+			continue
+		}
+		if manifest.CollectionInfo.Name != spec.Name {
+			continue
+		}
+
+		// is it a version with an operator or a range?
+		// "*" means -any-
+		if spec.Version != "" && spec.Version != "*" {
+
+			// make a comparable semver ...
+			op, v2, _ := splitVersion(spec.Version)
+			specVer, _ := semver.Make(v2)
+
+			// make a comparable semver ...
+			_, m2, _ := splitVersion(manifest.CollectionInfo.Version)
+			mVer, _ := semver.Make(m2)
+
+			// eval the conditional and skip if false ...
+			res, _ := utils.CompareSemVersions(op, &mVer, &specVer)
+			if !res {
+				continue
+			}
+		}
+
+		candidates = append(candidates, manifest)
+	}
+
+	return candidates
+}
+
+/*
+Split an arbitrary version string found in collection dependencies.
+The first part of the string could be a comparison operator.
+*/
 func splitVersion(versionStr string) (string, string, error) {
 	re := regexp.MustCompile(`(>=|<=|>|<|=)?\s*(\d+\.\d+\.\d+)`)
 	matches := re.FindStringSubmatch(versionStr)
@@ -268,30 +291,32 @@ func splitVersion(versionStr string) (string, string, error) {
 	return operator, version, nil
 }
 
-/*
-func compareVersions(op string, v1 *semver.Version, v2 *semver.Version) (bool, error) {
-	switch op {
-	case ">":
-		return v1.GreaterThan(v2), nil
-	case ">=":
-		return v1.GreaterThan(v2) || v1.Equal(v2), nil
-	case "<":
-		return v1.LessThan(v2), nil
-	case "<=":
-		return v1.LessThan(v2) || v1.Equal(v2), nil
-	case "=":
-		return v1.Equal(v2), nil
-	default:
-		return false, fmt.Errorf("invalid operator: %s", op)
-	}
-}
-*/
-
-func specListContains(specs *[]utils.InstallSpec, newSpec utils.InstallSpec) bool {
+func specListContainsNamespaceNameVersion(specs *[]utils.InstallSpec, newSpec utils.InstallSpec) bool {
 	for _, spec := range *specs {
 		if spec.Equals(newSpec) {
 			return true
 		}
 	}
 	return false
+}
+
+func specListContainsNamespaceName(specs *[]utils.InstallSpec, newSpec utils.InstallSpec) bool {
+	for _, spec := range *specs {
+		if spec.Namespace == newSpec.Namespace && spec.Name == newSpec.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func specFQNMatch(a utils.InstallSpec, b utils.InstallSpec) bool {
+	return false
+}
+
+func DeduplicateSpecs(specs *[]utils.InstallSpec) {
+	// only keep one version for each namespace.name ...
+
+	//toKeep := []utils.InstallSpec
+	//toDrop := []utils.InstallSpec
+
 }

@@ -1,10 +1,10 @@
 package collections
 
 import (
+	"fmt"
 	"lax/internal/packagemanager"
 	"lax/internal/repository"
 	"lax/internal/utils"
-	"fmt"
 	"time"
 )
 
@@ -78,10 +78,22 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 		return err
 	}
 
-	//fmt.Printf("%s\n", deps)
 	fmt.Printf("-----------------------------\n")
 	for _, spec := range specs {
 		fmt.Printf("install: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
+	}
+
+	fmt.Printf("-----------------------------\n")
+	for _, spec := range specs {
+		fmt.Printf("installing: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
+
+		// get a local cache file from the repo to install ...
+		fn := repoClient.GetCacheFileLocationForInstallSpec(spec)
+		fmt.Printf("\tfrom %s\n", fn)
+
+		// extract it to the right place ...
+		pkgMgr.InstalCollectionFromPath(spec.Namespace, spec.Name, spec.Version, fn)
+
 	}
 
 	return nil
