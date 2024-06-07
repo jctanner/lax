@@ -84,6 +84,10 @@ func (pkgmgr *PackageManager) ReadRepoMeta() error {
 
 func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name string, version string, fn string) error {
 
+    cPath := filepath.Join(pkgmgr.BasePath, "ansible_collections")
+    cPath,_ = utils.GetAbsPath(cPath)
+    utils.MakeDirs(cPath)
+
     // Basepath / collections / ansible_collections / namespace / name / ...
     dirPath := filepath.Join(pkgmgr.BasePath, "ansible_collections", namespace, name)
     dirPath, _ = utils.GetAbsPath(dirPath)
@@ -115,13 +119,13 @@ func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name st
     // Write the JSON data to a file
     file, err := os.Create(ymlFileName)
     if err != nil {
-        fmt.Printf("Error creating file: %v\n", err)
+        fmt.Printf("Error creating yml file: %v\n", err)
         return err
     }
     defer file.Close()
 
     if _, err := file.Write(jsonData); err != nil {
-        fmt.Printf("Error writing to file: %v\n", err)
+        fmt.Printf("Error writing to yml file: %v\n", err)
         return err
     }
 
