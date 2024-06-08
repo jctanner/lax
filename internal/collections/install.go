@@ -10,6 +10,8 @@ import (
 
 func Install(dest string, cachedir string, server string, requirements_file string, namespace string, name string, version string, args []string) error {
 
+	fmt.Printf("INSTALL2: cachedir:%s dest:%s\n", cachedir, dest)
+
 	// does dest have a repodata.json file, read it in?
 	repoClient, _ := repository.GetRepoClient(server, cachedir)
 	fmt.Printf("repoclient: %s\n", repoClient)
@@ -18,7 +20,7 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 	}
 
 	// Make the local package manager client
-	pkgMgr, err := packagemanager.GetPackageManager(dest)
+	pkgMgr, err := packagemanager.GetPackageManager(cachedir, dest)
 	fmt.Printf("packagemanager: %s\n", pkgMgr)
 	if err != nil {
 		return err

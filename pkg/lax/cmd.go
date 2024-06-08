@@ -1,13 +1,16 @@
 package lax
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 
-    "github.com/spf13/cobra"
-    "lax/internal/repository"
-    //"lax/internal/roles"
-    "lax/internal/collections"
+	"lax/internal/repository"
+	"lax/internal/utils"
+
+	"github.com/spf13/cobra"
+
+	//"lax/internal/roles"
+	"lax/internal/collections"
 )
 
 var server string
@@ -22,118 +25,139 @@ var version string
 var requirements_file string
 
 func Execute() {
-    var rootCmd = &cobra.Command{Use: "cli"}
 
-    var roleCmd = &cobra.Command{
-        Use:   "role",
-        Short: "Manage roles",
-    }
+	defaultDestDir := utils.ExpandUser("~/.ansible")
+	dest = defaultDestDir
+	defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
+	cachedir = defaultCacheDir
 
-    var collectionCmd = &cobra.Command{
-        Use:   "collection",
-        Short: "Manage collections",
-    }
+	var rootCmd = &cobra.Command{Use: "cli"}
 
-    /*
-    var repoCmd = &cobra.Command{
-        Use:   "repo",
-        Short: "Manage repositories",
-    }
-    */
+	var roleCmd = &cobra.Command{
+		Use:   "role",
+		Short: "Manage roles",
+	}
 
-    var createRepoCmd = &cobra.Command{
-        Use:   "createrepo",
-        Short: "Create repository metadata from a directory of artifacts",
-        Run: func(cmd *cobra.Command, args []string) {
-            repository.CreateRepo(dest)
-        },
-    }
+	var collectionCmd = &cobra.Command{
+		Use:   "collection",
+		Short: "Manage collections",
+	}
 
-    var initCmd = &cobra.Command{
-        Use:   "init",
-        Short: "Create a new role or collection",
-        Run: func(cmd *cobra.Command, args []string) {
-            fmt.Println("Initialized")
-        },
-    }
+	/*
+	   var repoCmd = &cobra.Command{
+	       Use:   "repo",
+	       Short: "Manage repositories",
+	   }
+	*/
 
-    var collectionInstallCmd = &cobra.Command{
-        Use:   "install",
-        Short: "Install",
-        Run: func(cmd *cobra.Command, args []string) {
-            collections.Install(dest, cachedir, server, requirements_file, namespace, name, version, args)
-        },
-    }
+	var createRepoCmd = &cobra.Command{
+		Use:   "createrepo",
+		Short: "Create repository metadata from a directory of artifacts",
+		Run: func(cmd *cobra.Command, args []string) {
+			repository.CreateRepo(dest)
+		},
+	}
 
-    var roleInstallCmd = &cobra.Command{
-        Use:   "install",
-        Short: "Install",
-        Run: func(cmd *cobra.Command, args []string) {
-            //collections.Install(server, namespace, name, version, args)
-        },
-    }
+	var initCmd = &cobra.Command{
+		Use:   "init",
+		Short: "Create a new role or collection",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Initialized")
+		},
+	}
 
-    var syncCmd = &cobra.Command{
-        Use:   "sync",
-        Short: "Sync",
-        Run: func(cmd *cobra.Command, args []string) {
-            /*
-            if collections_only || (!collections_only && !roles_only) {
-                if !artifacts_only {
-                    collections.SyncCollections(server, dest)
-                    collections.SyncVersions(server, dest)
-                }
-                collections.SyncArtifacts(server, dest)
-            }
-            if roles_only || (!collections_only && !roles_only) {
-                roles.SyncRoles(server, dest)
-            }
-            */
-        },
-    }
+	var collectionInstallCmd = &cobra.Command{
+		Use:   "install",
+		Short: "Install",
+		Run: func(cmd *cobra.Command, args []string) {
+			if dest == "" {
+				dest = defaultDestDir
+			}
+			if cachedir == "" {
+				cachedir = defaultCacheDir
+			}
+			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", cachedir, dest)
+			collections.Install(dest, cachedir, server, requirements_file, namespace, name, version, args)
+		},
+	}
 
-    createRepoCmd.Flags().StringVar(&dest, "dest", "", "where the files are")
+	var roleInstallCmd = &cobra.Command{
+		Use:   "install",
+		Short: "Install",
+		Run: func(cmd *cobra.Command, args []string) {
+			//collections.Install(server, namespace, name, version, args)
+		},
+	}
 
-    collectionInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
-    collectionInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
-    collectionInstallCmd.Flags().StringVar(&name, "name", "", "name")
-    collectionInstallCmd.Flags().StringVar(&version, "version", "", "version")
-    collectionInstallCmd.Flags().StringVar(&dest, "dest", "", "where to install")
-    collectionInstallCmd.Flags().StringVar(&cachedir, "cachedir", "~/.cache/galaxy", "where to store intermediate files")
-    collectionInstallCmd.Flags().StringVarP(&requirements_file, "requirements-file", "r", "", "requirements file")
+	var syncCmd = &cobra.Command{
+		Use:   "sync",
+		Short: "Sync",
+		Run: func(cmd *cobra.Command, args []string) {
+			/*
+			   if collections_only || (!collections_only && !roles_only) {
+			       if !artifacts_only {
+			           collections.SyncCollections(server, dest)
+			           collections.SyncVersions(server, dest)
+			       }
+			       collections.SyncArtifacts(server, dest)
+			   }
+			   if roles_only || (!collections_only && !roles_only) {
+			       roles.SyncRoles(server, dest)
+			   }
+			*/
+		},
+	}
 
-    roleInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
-    roleInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
-    roleInstallCmd.Flags().StringVar(&name, "name", "", "name")
-    roleInstallCmd.Flags().StringVar(&version, "version", "", "version")
-    roleInstallCmd.Flags().StringVar(&cachedir, "cachedir", "~/.cache/galaxy", "where to store intermediate files")
+	/*
+		defaultDestDir := utils.ExpandUser("~/.ansible")
+		dest = defaultDestDir
+		//defaultDest, _ = utils.GetAbsPath(defaultDest)
+		defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
+		//defaultCacheDir, _ = utils.GetAbsPath(defaultCacheDir)
+		cachedir = defaultCacheDir
+	*/
 
-    syncCmd.Flags().StringVar(&server, "server", "", "remote server")
-    syncCmd.Flags().StringVar(&dest, "dest", "", "where to store the data")
-    syncCmd.Flags().BoolVar(&collections_only, "collections", false, "just sync collections")
-    syncCmd.Flags().BoolVar(&roles_only, "roles", false, "just sync roles")
-    syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
-    syncCmd.MarkFlagRequired("server")
-    syncCmd.MarkFlagRequired("dest")
+	createRepoCmd.Flags().StringVar(&dest, "dest", "", "where the files are")
 
-    roleCmd.AddCommand(initCmd)
-    roleCmd.AddCommand(roleInstallCmd)
+	collectionInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
+	collectionInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
+	collectionInstallCmd.Flags().StringVar(&name, "name", "", "name")
+	collectionInstallCmd.Flags().StringVar(&version, "version", "", "version")
+	collectionInstallCmd.Flags().StringVar(&dest, "dest", defaultDestDir, "where to install")
+	collectionInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
+	collectionInstallCmd.Flags().StringVarP(&requirements_file, "requirements-file", "r", "", "requirements file")
 
-    collectionCmd.AddCommand(initCmd)
-    collectionCmd.AddCommand(collectionInstallCmd)
+	roleInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
+	roleInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
+	roleInstallCmd.Flags().StringVar(&name, "name", "", "name")
+	roleInstallCmd.Flags().StringVar(&version, "version", "", "version")
+	roleInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
 
-    //repoCmd.AddCommand(initCmd)
-    //repoCmd.AddCommand(installCmd)
+	syncCmd.Flags().StringVar(&server, "server", "", "remote server")
+	syncCmd.Flags().StringVar(&dest, "dest", "", "where to store the data")
+	syncCmd.Flags().BoolVar(&collections_only, "collections", false, "just sync collections")
+	syncCmd.Flags().BoolVar(&roles_only, "roles", false, "just sync roles")
+	syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
+	syncCmd.MarkFlagRequired("server")
+	syncCmd.MarkFlagRequired("dest")
 
-    rootCmd.AddCommand(createRepoCmd)
-    rootCmd.AddCommand(syncCmd)
-    rootCmd.AddCommand(roleCmd)
-    rootCmd.AddCommand(collectionCmd)
-    //rootCmd.AddCommand(repoCmd)
+	roleCmd.AddCommand(initCmd)
+	roleCmd.AddCommand(roleInstallCmd)
 
-    if err := rootCmd.Execute(); err != nil {
-        fmt.Println(err)
-        os.Exit(1)
-    }
+	collectionCmd.AddCommand(initCmd)
+	collectionCmd.AddCommand(collectionInstallCmd)
+
+	//repoCmd.AddCommand(initCmd)
+	//repoCmd.AddCommand(installCmd)
+
+	rootCmd.AddCommand(createRepoCmd)
+	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(roleCmd)
+	rootCmd.AddCommand(collectionCmd)
+	//rootCmd.AddCommand(repoCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
-

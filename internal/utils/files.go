@@ -31,7 +31,6 @@ func ExpandUser(path string) string {
 	return path
 }
 
-
 func GetAbsPath(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
@@ -107,27 +106,28 @@ func IsFile(path string) bool {
 }
 
 func MakeDirs(path string) error {
-    // Check if the path exists
-    info, err := os.Stat(path)
-    if os.IsNotExist(err) {
-        // Path does not exist, create the directory
-        err := os.Mkdir(path, 0755)
-        if err != nil {
-            return fmt.Errorf("failed to create directory: %v", err)
-        }
-        return nil 
-    }   
-    if err != nil {
-        return fmt.Errorf("failed to check directory: %v", err)
-    }   
+	//fmt.Printf("MAKEDIRS: %s\n", path)
+	// Check if the path exists
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		// Path does not exist, create the directory
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return fmt.Errorf("failed to create directory: %v", err)
+		}
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check directory: %v", err)
+	}
 
-    // Path exists, check if it is a directory
-    if !info.IsDir() {
-        return fmt.Errorf("path exists but is not a directory")
-    }   
+	// Path exists, check if it is a directory
+	if !info.IsDir() {
+		return fmt.Errorf("path exists but is not a directory")
+	}
 
-    // Path exists and is a directory
-    return nil 
+	// Path exists and is a directory
+	return nil
 }
 
 func ListTarGzFiles(dir string) ([]string, error) {
@@ -142,14 +142,13 @@ func ListTarGzFiles(dir string) ([]string, error) {
 		}
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
 
 	return tarGzFiles, nil
 }
-
 
 func ExtractJSONFilesFromTarGz(tarGzPath string, jsonFileNames []string) (map[string][]byte, error) {
 	// Open the .tar.gz file
@@ -209,7 +208,6 @@ func ExtractJSONFilesFromTarGz(tarGzPath string, jsonFileNames []string) (map[st
 	return result, nil
 }
 
-
 /*
 // Unmarshal JSON data into a map
 func UnmarshalJSONData(jsonData []byte) (map[string]interface{}, error) {
@@ -255,71 +253,69 @@ func CopyFile(src string, dst string) error {
 	return nil
 }
 
-
-
 func ExtractTarGz(tarGzPath, dest string) error {
-    // Open the tar.gz file
-    file, err := os.Open(tarGzPath)
-    if err != nil {
-        return fmt.Errorf("open tar.gz file: %v", err)
-    }
-    defer file.Close()
+	// Open the tar.gz file
+	file, err := os.Open(tarGzPath)
+	if err != nil {
+		return fmt.Errorf("open tar.gz file: %v", err)
+	}
+	defer file.Close()
 
-    // Create gzip reader
-    uncompressedStream, err := gzip.NewReader(file)
-    if err != nil {
-        return fmt.Errorf("create gzip reader: %v", err)
-    }
-    defer uncompressedStream.Close()
+	// Create gzip reader
+	uncompressedStream, err := gzip.NewReader(file)
+	if err != nil {
+		return fmt.Errorf("create gzip reader: %v", err)
+	}
+	defer uncompressedStream.Close()
 
-    // Create tar reader
-    tarReader := tar.NewReader(uncompressedStream)
+	// Create tar reader
+	tarReader := tar.NewReader(uncompressedStream)
 
-    // Iterate through the files in the archive
-    for {
-        header, err := tarReader.Next()
-        if err == io.EOF {
-            break // End of archive
-        }
-        if err != nil {
-            return fmt.Errorf("read tar header: %v", err)
-        }
+	// Iterate through the files in the archive
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return fmt.Errorf("read tar header: %v", err)
+		}
 
-        // Determine the target file path
-        target := filepath.Join(dest, header.Name)
+		// Determine the target file path
+		target := filepath.Join(dest, header.Name)
 
-        // Ensure the parent directory exists
-        if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-            return fmt.Errorf("create directory: %v", err)
-        }
+		// Ensure the parent directory exists
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return fmt.Errorf("create directory: %v", err)
+		}
 
-        switch header.Typeflag {
-        case tar.TypeDir:
-            // Create directory if it does not exist
-            if _, err := os.Stat(target); err != nil {
-                if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-                    return fmt.Errorf("create directory: %v", err)
-                }
-            }
-        case tar.TypeReg:
-            // Create and write to file
-            outFile, err := os.Create(target)
-            if err != nil {
-                return fmt.Errorf("create file: %v", err)
-            }
-            if _, err := io.Copy(outFile, tarReader); err != nil {
-                outFile.Close()
-                return fmt.Errorf("write file: %v", err)
-            }
-            outFile.Close()
+		switch header.Typeflag {
+		case tar.TypeDir:
+			// Create directory if it does not exist
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+					return fmt.Errorf("create directory: %v", err)
+				}
+			}
+		case tar.TypeReg:
+			// Create and write to file
+			outFile, err := os.Create(target)
+			if err != nil {
+				return fmt.Errorf("create file: %v", err)
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+				return fmt.Errorf("write file: %v", err)
+			}
+			outFile.Close()
 
-            // Set file permissions
-            if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
-                return fmt.Errorf("set file permissions: %v", err)
-            }
-        default:
-            return fmt.Errorf("unsupported file type: %v", header.Typeflag)
-        }
-    }
-    return nil
+			// Set file permissions
+			if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("set file permissions: %v", err)
+			}
+		default:
+			return fmt.Errorf("unsupported file type: %v", header.Typeflag)
+		}
+	}
+	return nil
 }

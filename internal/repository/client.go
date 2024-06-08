@@ -22,7 +22,7 @@ type RepoClient interface {
 	//GetRepoMeta(cachePath string) (RepoMeta, error)
 	GetRepoMetaDate() (string, error)
 	ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
-	GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) (string)
+	GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) string
 }
 
 type FileRepoClient struct {
@@ -79,6 +79,7 @@ func (client *FileRepoClient) FetchRepoMeta(cachePath string) error {
 	// copy repometa.json
 	src := filepath.Join(client.BasePath, "repometa.json")
 	dst := filepath.Join(cachePath, "repometa.json")
+	utils.MakeDirs(cachePath)
 	fmt.Printf("repometa: %s -> %s\n", src, dst)
 	utils.CopyFile(src, dst)
 
@@ -130,7 +131,6 @@ func (client *FileRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	return fileName
 }
 
-
 func (client *FileRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 
 	// load the collections manifests
@@ -154,11 +154,11 @@ func (client *HttpRepoClient) FetchRepoMeta(cachePath string) error {
 	// Construct the full url to the repometa.json file
 	metaUrl := client.BaseURL + "/" + "repometa.json"
 	cachedMetaFile := filepath.Join(client.CachePath, "repometa.json")
-	fmt.Printf("%s -> %s\n", metaUrl, cachedMetaFile)
+	fmt.Printf("rm: %s -> %s\n", metaUrl, cachedMetaFile)
 	err := DownloadFile(metaUrl, cachedMetaFile)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err)
-		return fmt.Errorf("failed to download file: %w", err)	
+		return fmt.Errorf("failed to download file: %w", err)
 	}
 
 	// Read the file
@@ -185,11 +185,11 @@ func (client *HttpRepoClient) FetchRepoMeta(cachePath string) error {
 	for _, fn := range filesToGet {
 		localFile := filepath.Join(client.CachePath, fn)
 		url := client.BaseURL + "/" + fn
-		fmt.Printf("%s -> %s\n", url, localFile)
+		fmt.Printf("rm: %s -> %s\n", url, localFile)
 		err := DownloadFile(url, localFile)
 		if err != nil {
 			fmt.Printf("ERROR: %s\n", err)
-			return fmt.Errorf("failed to download file: %w", err)	
+			return fmt.Errorf("failed to download file: %w", err)
 		}
 	}
 
@@ -219,7 +219,6 @@ func (client *HttpRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 
 	return cFile
 }
-
 
 func (client *HttpRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 	// load the collections manifests
@@ -391,33 +390,39 @@ func DeduplicateSpecs(specs *[]utils.InstallSpec) {
 
 }
 
-
-
 func DownloadFile(url, dest string) error {
-    // Create the file
-    outFile, err := os.Create(dest)
-    if err != nil {
-        return fmt.Errorf("create file: %v", err)
-    }
-    defer outFile.Close()
+	// Define the directory
+	destDir := filepath.Dir(dest)
+	err := utils.MakeDirs(destDir)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return err
+	}
 
-    // Get the data
-    resp, err := http.Get(url)
-    if err != nil {
-        return fmt.Errorf("get url: %v", err)
-    }
-    defer resp.Body.Close()
+	// Create the file
+	outFile, err := os.Create(dest)
+	if err != nil {
+		return fmt.Errorf("create file: %v", err)
+	}
+	defer outFile.Close()
 
-    // Check server response
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("bad status: %s", resp.Status)
-    }
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("get url: %v", err)
+	}
+	defer resp.Body.Close()
 
-    // Writer the body to file
-    _, err = io.Copy(outFile, resp.Body)
-    if err != nil {
-        return fmt.Errorf("write to file: %v", err)
-    }
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
 
-    return nil
+	// Writer the body to file
+	_, err = io.Copy(outFile, resp.Body)
+	if err != nil {
+		return fmt.Errorf("write to file: %v", err)
+	}
+
+	return nil
 }
