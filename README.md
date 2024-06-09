@@ -27,7 +27,7 @@ sys     0m8.316s
 Why is it faster? It's not because it's written in golang. It's because ansible-galaxy and the galaxy server api have been designed to make a LOT of network requests to find information about collections and to build dependency maps ...
 
 ```
-(venv) jtanner@corsair:~/workspace/github/jctanner.redhat/galaxy_cli_replacment/lax.repo$ rm -rf ~/.ansible; ansible-galaxy collection install -vvvv sivel.acd 
+$ rm -rf ~/.ansible; ansible-galaxy collection install -vvvv sivel.acd 
 ...
 Calling Galaxy at https://galaxy.ansible.com/api/
 Found API version 'v3, pulp-v3, v1' with Galaxy server default (https://galaxy.ansible.com/api/)
