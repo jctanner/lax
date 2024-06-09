@@ -28,22 +28,7 @@ Why is it faster? It's not because it's written in golang. It's because ansible-
 
 ```
 (venv) jtanner@corsair:~/workspace/github/jctanner.redhat/galaxy_cli_replacment/lax.repo$ rm -rf ~/.ansible; ansible-galaxy collection install -vvvv sivel.acd 
-ansible-galaxy [core 2.17.0]
-  config file = None
-  configured module search path = ['/home/jtanner/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /home/jtanner/workspace/github/jctanner.redhat/galaxy_cli_replacment/venv/lib64/python3.12/site-packages/ansible
-  ansible collection location = /home/jtanner/.ansible/collections:/usr/share/ansible/collections
-  executable location = /home/jtanner/workspace/github/jctanner.redhat/galaxy_cli_replacment/venv/bin/ansible-galaxy
-  python version = 3.12.3 (main, Apr 17 2024, 00:00:00) [GCC 14.0.1 20240411 (Red Hat 14.0.1-0)] (/home/jtanner/workspace/github/jctanner.redhat/galaxy_cli_replacment/venv/bin/python3)
-  jinja version = 3.1.4
-  libyaml = True
-No config file found; using defaults
-Creating Galaxy API response cache file at '/home/jtanner/.ansible/galaxy_cache/api.json'
-Galaxy cache file at '/home/jtanner/.ansible/galaxy_cache/api.json' has an invalid version, clearing
-Starting galaxy collection install process
-Process install dependency map
-Initial connection to galaxy_server: https://galaxy.ansible.com
-Created /home/jtanner/.ansible/galaxy_token
+...
 Calling Galaxy at https://galaxy.ansible.com/api/
 Found API version 'v3, pulp-v3, v1' with Galaxy server default (https://galaxy.ansible.com/api/)
 Calling Galaxy at https://galaxy.ansible.com/api/v3/collections/sivel/acd/
