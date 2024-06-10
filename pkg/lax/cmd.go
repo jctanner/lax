@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"lax/internal/galaxy_sync"
 	"lax/internal/repository"
 	"lax/internal/utils"
 
@@ -90,8 +91,8 @@ func Execute() {
 	}
 
 	var syncCmd = &cobra.Command{
-		Use:   "sync",
-		Short: "Sync",
+		Use:   "galaxy-sync",
+		Short: "Sync content from galaxy into a lax repo directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			/*
 			   if collections_only || (!collections_only && !roles_only) {
@@ -105,6 +106,13 @@ func Execute() {
 			       roles.SyncRoles(server, dest)
 			   }
 			*/
+			if server == "" {
+				server = "https://galaxy.ansible.com"
+			}
+			err := galaxy_sync.GalaxySync(server, dest, collections_only, roles_only)
+			if err != nil {
+				fmt.Printf("ERROR: %s\n", err)
+			}
 		},
 	}
 
@@ -133,12 +141,12 @@ func Execute() {
 	roleInstallCmd.Flags().StringVar(&version, "version", "", "version")
 	roleInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
 
-	syncCmd.Flags().StringVar(&server, "server", "", "remote server")
+	syncCmd.Flags().StringVar(&server, "server", "https://galaxy.ansible.com", "remote server")
 	syncCmd.Flags().StringVar(&dest, "dest", "", "where to store the data")
 	syncCmd.Flags().BoolVar(&collections_only, "collections", false, "just sync collections")
 	syncCmd.Flags().BoolVar(&roles_only, "roles", false, "just sync roles")
 	syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
-	syncCmd.MarkFlagRequired("server")
+	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 
 	roleCmd.AddCommand(initCmd)
