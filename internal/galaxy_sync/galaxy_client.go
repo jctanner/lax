@@ -189,6 +189,48 @@ func (c *CachedGalaxyClient) loadFromCache(path string, response *RolesResponse)
 	return json.Unmarshal(data, response)
 }
 
+func (c *CachedGalaxyClient) loadCollectionsFromCache(path string, response *CollectionResponse) error {
+	fmt.Printf("read cached %s\n", path)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, response)
+}
+
+func (c *CachedGalaxyClient) loadCollectionVersionDetailFromCache(path string, response *CollectionVersionDetail) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, response)
+}
+
+func (c *CachedGalaxyClient) fetchCollectionVersionDetailsFromServer(url string, path string, response *CollectionVersionDetail) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(body, response); err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, body, 0644)
+}
+
 func (c *CachedGalaxyClient) loadVersionsFromCache(path string, response *RoleVersionsResponse) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -221,6 +263,31 @@ func (c *CachedGalaxyClient) fetchFromServer(url, cacheFile string, response *Ro
 
 	return os.WriteFile(cacheFile, body, 0644)
 }
+
+// fetchFromServer fetches the response from the server and saves it to the cache file
+func (c *CachedGalaxyClient) fetchCollectionsFromServer(url, cacheFile string, response *CollectionResponse) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(body, response); err != nil {
+		return err
+	}
+
+	return os.WriteFile(cacheFile, body, 0644)
+}
+
 
 
 func (c *CachedGalaxyClient) fetchVersionsFromServer(url, cacheFile string, response *RoleVersionsResponse) error {
@@ -266,3 +333,158 @@ func Percentage(a, b int) (int) {
 	return int((float64(b) / float64(a)) * 100)
 }
 
+
+
+type Collection struct {
+	Href string `json:"href"`
+	Namespace string `json:"namespace"`
+	Name string `json:"name"`
+	Deprecated bool `json:"deprecated"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+type CollectionResponse struct {
+	Meta struct {
+		Count int `json:"count"`
+	} `json:"meta"`
+	Links struct {
+		First string `json:"first"`
+		Previous string `json:"previous"`
+		Next string `json:"next"`
+		Last string `json:"last"`
+	} `json:"links"`
+	Data []CrossRepoCollectionIndex `json:"data"`
+}
+
+type CrossRepoCollectionIndex struct {
+	Repository struct {
+		Name string `json:"name"`
+	} `json:"repository"`
+	CollectionVersion struct {
+		PulpHref string `json:"pulp_href"`
+		PulpCreated string `json:"pulp_created"`
+		Namespace string `json:"namespace"`
+		Name string `json:"name"`
+		Version string `json:"version"`
+		Description string `json:"description"`
+		Tags []struct {
+			Name string `json:"name"`
+		} `json:"tags"`
+		IsHighest bool `json:"is_highest"`
+	} `json:"collection_version"`
+}
+
+type CollectionVersionDetail struct {
+	Namespace struct {
+		Name string `json:"name"`
+	} `json:"namespace"`
+	Name string `json:"name"`
+	Version string `json:"version"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	DownloadUrl string `json:"download_url"`
+	MetaData struct {
+		Description string `json:"description"`
+		Tags []string `json:"tags"`
+	} `json:"metadata"`
+	Artifact struct {
+		FileName string `json:"filename"`
+		Sha256 string `json:"sha256"`
+		Size int `json:"size"`
+	} `json:"artifact"`
+}
+
+// GetRoles fetches all the roles from the server's base URL
+func (c *CachedGalaxyClient) GetCollections(namespace string, name string) ([]CollectionVersionDetail, error) {
+
+	// https://galaxy.ansible.com/api/v3/plugin/ansible/search/collection-versions/?is_deprecated=false&repository_label=!hide_from_search&is_highest=true&offset=0&limit=10&order_by=name
+	// https://galaxy.ansible.com/api/v3/collectionsgeerlingguy/mac/
+
+	//var allCollections []Collection
+	var allCollectionVersionDetails []CollectionVersionDetail
+
+	url := fmt.Sprintf("%s/api/v3/plugin/ansible/search/collection-versions/", c.baseUrl)
+	if namespace != "" && name != "" {
+		url = url + fmt.Sprintf("?namespace=%s&name=%s", namespace, name)
+	} else if namespace != "" {
+		url = url + fmt.Sprintf("?namespace=%s", namespace)
+	} else if name != "" {
+		url = url + fmt.Sprintf("?name=%s", name)
+	}
+
+	collectionCount := 0;
+	collectionsFetched := 0;
+
+	for url != "" {
+		pct := Percentage(collectionCount, collectionsFetched)
+		fmt.Printf("%d|%d %d%% %s\n", collectionCount, collectionsFetched, pct, url)
+
+		cacheFile := c.getCacheFilePath(url)
+
+		var collectionsResponse CollectionResponse
+		if c.isCacheFileExist(cacheFile) {
+			err := c.loadCollectionsFromCache(cacheFile, &collectionsResponse)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err := c.fetchCollectionsFromServer(url, cacheFile, &collectionsResponse)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+
+		for _, col := range collectionsResponse.Data {
+			fmt.Printf("col: %s\n", col)
+			// need to get the details page to find the download url ...
+			// /api/v3/plugin/ansible/content/published/collections/index/geerlingguy/mac/versions/4.0.1/
+			detailsUrl := fmt.Sprintf(
+				"%s/api/v3/plugin/ansible/content/published/collections/index/%s/%s/versions/%s/",
+				c.baseUrl,
+				col.CollectionVersion.Namespace,
+				col.CollectionVersion.Name, 
+				col.CollectionVersion.Version,
+			)
+			fmt.Printf("%s\n", detailsUrl)
+
+			detailsCacheFile := c.getCacheFilePath(detailsUrl)
+			var details CollectionVersionDetail
+
+			if c.isCacheFileExist(detailsCacheFile) {
+				err := c.loadCollectionVersionDetailFromCache(detailsCacheFile, &details)
+				if err != nil {
+					//panic("")
+					return nil, err
+				}
+			} else {
+				err := c.fetchCollectionVersionDetailsFromServer(detailsUrl, detailsCacheFile, &details)
+				if err != nil {
+					//panic("")
+					return nil, err
+				}
+			}
+
+			//detail,_ := c.fetchCollectionVersionDetail(, detailsUrl, )
+			fmt.Printf("download-url: %s\n", details.DownloadUrl)
+
+			allCollectionVersionDetails = append(allCollectionVersionDetails, details)
+		}
+
+
+		/*
+		collectionCount = collectionsResponse.Count
+		allCollections = append(allCollections, collectionsResponse.Data...)
+		collectionsFetched = len(allCollections)
+		*/
+		if collectionsResponse.Links.Next != "" {
+			url = c.baseUrl + collectionsResponse.Links.Next
+		} else {
+			url = ""
+		}
+
+	}
+
+	return allCollectionVersionDetails, nil
+}

@@ -24,6 +24,9 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 	collectionsCacheDir := path.Join(cacheDir, "collections")
 	utils.MakeDirs(collectionsCacheDir)
 
+	collectionsDir := path.Join(dest, "collections")
+	utils.MakeDirs(collectionsDir)
+
 	rolesDir := path.Join(dest, "roles")
 	utils.MakeDirs(rolesDir)
 
@@ -91,10 +94,37 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 	}
 	
 	if collections_only || !roles_only {
-		err := syncCollections(server, dest, apiClient)
+		collections, err := syncCollections(server, dest, apiClient, namespace, name)
 		if err != nil {
 			return err
 		}
+
+		fmt.Printf("%d total collection versions\n", len(collections))
+
+		maxConcurrent := download_concurrency
+
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
+	
+		for ix, cv := range collections {
+			sem <- struct{}{} // acquire a slot
+			wg.Add(1)
+			go func(ix int, col CollectionVersionDetail) {
+				defer wg.Done()
+				defer func() { <-sem }() // release the slot
+	
+				fn := path.Base(col.Artifact.FileName)
+				fp := path.Join(collectionsDir, fn)
+				if !utils.IsFile(fp) {
+					fmt.Printf("downloading %s\n", col.DownloadUrl)
+					utils.DownloadBinaryFileToPath(col.DownloadUrl, fp)
+				}
+	
+			}(ix, cv)
+		}
+	
+		wg.Wait()
+
 	}
 
 	return nil
