@@ -1,11 +1,13 @@
 package repository
 
 import (
-	"lax/internal/utils"
 	"fmt"
 	"io"
+	"lax/internal/utils"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 
 	"encoding/gob"
 	"encoding/json"
@@ -18,12 +20,19 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	"gopkg.in/yaml.v2"
 )
+
+/***************************************************************
+GLOBAL
+***************************************************************/
 
 type RepoMeta struct {
 	Date                string       `json:"date"`
 	CollectionManifests RepoMetaFile `json:"collection_manifests"`
 	CollectionFiles     RepoMetaFile `json:"collection_files"`
+	RoleManifests RepoMetaFile `json:"role_manifests"`
+	RoleFiles     RepoMetaFile `json:"role_files"`
 }
 
 type RepoMetaFile struct {
@@ -31,7 +40,12 @@ type RepoMetaFile struct {
 	Filename string `json:"filename"`
 }
 
-type Manifest struct {
+
+/***************************************************************
+COLLECTIONS
+***************************************************************/
+
+type CollectionManifest struct {
 	CollectionInfo CollectionInfo `json:"collection_info"`
 }
 
@@ -42,18 +56,18 @@ type CollectionInfo struct {
 	Dependencies map[string]string `json:"dependencies"`
 }
 
-type FilesMeta struct {
-	Files []FileInfo `json:"files"`
+type CollectionFilesMeta struct {
+	Files []CollectionFileInfo `json:"files"`
 }
 
-type FileInfo struct {
+type CollectionFileInfo struct {
 	Name           string `json:"name"`
 	FType          string `json:"ftype"`
 	CheckSumType   string `json:"chksum_type"`
 	CheckSumSHA256 string `json:"chksum_sha256"`
 }
 
-type CachedFileInfo struct {
+type CollectionCachedFileInfo struct {
 	Namespace      string `json:"namespace"`
 	Name           string `json:"name"`
 	Version        string `json:"version"`
@@ -62,7 +76,162 @@ type CachedFileInfo struct {
 	CheckSumSHA256 string `json:"chksum_sha256"`
 }
 
-func createManifestsTarGz(manifests []Manifest, tarGzPath string) error {
+/***************************************************************
+ROLES
+***************************************************************/
+
+type RoleCachedFileInfo struct {
+	Namespace      string `json:"namespace"`
+	Name           string `json:"name"`
+	Version        string `json:"version"`
+	FileName           string `json:"filename"`
+	FileType          string `json:"filetype"`
+	//CheckSumType   string `json:"chksum_type"`
+	//CheckSumSHA256 string `json:"chksum_sha256"`
+}
+
+type RoleMeta struct {
+	GalaxyInfo GalaxyInfo  `yaml:"galaxy_info"`
+}
+
+type GalaxyInfo struct {
+	Author string `yaml:"author"`
+	Namespace string `yaml:"namespace"`
+	RoleName string `yaml:"role_name"`
+	Description string `yaml:"description"`
+	License RoleLicense `yaml:"license"`
+	MinAnsibleVersion string `json:"min_ansible_version"`
+	Platforms        []RolePlatform `yaml:"platforms"`
+	GalaxyTags       []string   `yaml:"galaxy_tags"`
+	Dependencies []RoleDependency `yaml:"dependencies"`
+}
+
+type RolePlatform struct {
+    Name     string   `yaml:"name"`
+    Versions []string `yaml:"versions"`
+}
+
+type RolePlatformVersions []string
+
+/*
+func (rp *RolePlatform) UnmarshalYAML(unmarshal func(interface{}) error) error {
+    var temp struct {
+        Name     string      `yaml:"name"`
+        Versions interface{} `yaml:"versions"`
+    }
+
+    if err := unmarshal(&temp); err != nil {
+        return err
+    }
+
+    rp.Name = temp.Name
+
+    switch v := temp.Versions.(type) {
+    case string:
+        rp.Versions = RolePlatformVersions{v}
+    case []interface{}:
+        var versions RolePlatformVersions
+        for _, version := range v {
+            versions = append(versions, version.(string))
+        }
+        rp.Versions = versions
+    default:
+        return fmt.Errorf("unexpected type for versions: %T", temp.Versions)
+    }
+
+    return nil
+}
+*/
+
+func (rp *RolePlatform) UnmarshalYAML(unmarshal func(interface{}) error) error {
+    var temp struct {
+        Name     string      `yaml:"name"`
+        Versions interface{} `yaml:"versions"`
+    }
+
+    if err := unmarshal(&temp); err != nil {
+        return err
+    }
+
+    rp.Name = temp.Name
+
+    switch v := temp.Versions.(type) {
+    case string:
+        rp.Versions = RolePlatformVersions{v}
+    case int:
+        rp.Versions = RolePlatformVersions{strconv.Itoa(v)}
+	case float64:
+		vstring := strconv.FormatFloat(v, 'f', -1, 64)
+		rp.Versions = RolePlatformVersions{vstring}
+	case nil:
+		rp.Versions = RolePlatformVersions{}
+    case []interface{}:
+        var versions RolePlatformVersions
+        for _, version := range v {
+            switch v := version.(type) {
+            case string:
+                versions = append(versions, v)
+            case int:
+                versions = append(versions, strconv.Itoa(v))
+			case float64:
+				vstring := strconv.FormatFloat(v, 'f', -1, 64)
+				rp.Versions = append(versions, vstring)
+            default:
+                return fmt.Errorf("unexpected type for platform-version: %T", version)
+            }
+        }
+        rp.Versions = versions
+    default:
+        return fmt.Errorf("unexpected type for platform-versions: %T", temp.Versions)
+    }
+
+    return nil
+}
+
+type RoleLicense []string
+
+func (l *RoleLicense) UnmarshalYAML(unmarshal func(interface{}) error) error {
+    var singleLicense string
+    if err := unmarshal(&singleLicense); err == nil {
+        *l = RoleLicense{singleLicense}
+        return nil
+    }
+
+    var licenseList []string
+    if err := unmarshal(&licenseList); err == nil {
+        *l = RoleLicense(licenseList)
+        return nil
+    }
+
+    return fmt.Errorf("failed to unmarshal License")
+}
+
+// Dependency can be either a string or a map
+type RoleDependency struct {
+	Src  string
+	Name string
+}
+
+func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var depString string
+	if err := unmarshal(&depString); err == nil {
+		d.Src = depString
+		d.Name = depString
+		return nil
+	}
+
+	var depMap map[string]string
+	if err := unmarshal(&depMap); err == nil {
+		d.Src = depMap["src"]
+		d.Name = depMap["name"]
+		return nil
+	}
+
+	return fmt.Errorf("failed to unmarshal Dependency")
+}
+
+
+func createCollectionManifestsTarGz(manifests []CollectionManifest, tarGzPath string) error {
 	// Create a buffer to write the tar archive
 	var buf bytes.Buffer
 
@@ -119,7 +288,7 @@ func createManifestsTarGz(manifests []Manifest, tarGzPath string) error {
 	return nil
 }
 
-func ExtractManifestsFromTarGz(tarGzPath string) ([]Manifest, error) {
+func ExtractCollectionManifestsFromTarGz(tarGzPath string) ([]CollectionManifest, error) {
 	// Open the tar.gz file
 	file, err := os.Open(tarGzPath)
 	if err != nil {
@@ -137,7 +306,7 @@ func ExtractManifestsFromTarGz(tarGzPath string) ([]Manifest, error) {
 	// Create a tar reader
 	tarReader := tar.NewReader(gzipReader)
 
-	var manifests []Manifest
+	var manifests []CollectionManifest
 
 	// Iterate over the files in the tar archive
 	for {
@@ -157,7 +326,7 @@ func ExtractManifestsFromTarGz(tarGzPath string) ([]Manifest, error) {
 		}
 
 		// Unmarshal the JSON data into a Manifest object
-		var manifest Manifest
+		var manifest CollectionManifest
 		if err := json.Unmarshal(jsonData, &manifest); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal JSON data: %w", err)
 		}
@@ -169,66 +338,7 @@ func ExtractManifestsFromTarGz(tarGzPath string) ([]Manifest, error) {
 	return manifests, nil
 }
 
-/*
-func createFilesCacheTarGz(manifests []CachedFileInfo, tarGzPath string) error {
-	// Create a buffer to write the tar archive
-	var buf bytes.Buffer
-
-	// Create a tar writer
-	tarWriter := tar.NewWriter(&buf)
-
-	// Add each manifest as a JSON file to the tar archive
-	for i, manifest := range manifests {
-		// Marshal the manifest to JSON
-		jsonData, err := json.Marshal(manifest)
-		if err != nil {
-			return fmt.Errorf("failed to marshal manifest to JSON: %w", err)
-		}
-
-		// Create a tar header for the JSON file
-		header := &tar.Header{
-			Name: fmt.Sprintf("manifest_%d.json", i),
-			Mode: 0600,
-			Size: int64(len(jsonData)),
-		}
-
-		// Write the header to the tar archive
-		if err := tarWriter.WriteHeader(header); err != nil {
-			return fmt.Errorf("failed to write tar header: %w", err)
-		}
-
-		// Write the JSON data to the tar archive
-		if _, err := tarWriter.Write(jsonData); err != nil {
-			return fmt.Errorf("failed to write JSON data to tar archive: %w", err)
-		}
-	}
-
-	// Close the tar writer
-	if err := tarWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close tar writer: %w", err)
-	}
-
-	// Create the output file for the tar.gz archive
-	outFile, err := os.Create(tarGzPath)
-	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
-	}
-	defer outFile.Close()
-
-	// Create a gzip writer
-	gzipWriter := gzip.NewWriter(outFile)
-	defer gzipWriter.Close()
-
-	// Write the tar archive to the gzip writer
-	if _, err := gzipWriter.Write(buf.Bytes()); err != nil {
-		return fmt.Errorf("failed to write tar data to gzip writer: %w", err)
-	}
-
-	return nil
-}
-*/
-
-func saveCachedFilesToGzippedFile(manifests []CachedFileInfo, filePath string, chunkSize int) error {
+func saveCachedFilesToGzippedFile(manifests []CollectionCachedFileInfo, filePath string, chunkSize int) error {
 	// Create the output file
 	outFile, err := os.Create(filePath)
 	if err != nil {
@@ -265,7 +375,7 @@ func saveCachedFilesToGzippedFile(manifests []CachedFileInfo, filePath string, c
 	return nil
 }
 
-func CreateRepo(dest string) error {
+func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
 
 	fmt.Printf("Create repo in %s\n", dest)
 
@@ -283,87 +393,17 @@ func CreateRepo(dest string) error {
 
 	// assert it has a collections subdir
 	collectionsPath := filepath.Join(apath, "collections")
-	if !utils.IsDir(collectionsPath) {
-		fmt.Printf("%s is not a directory\n", collectionsPath)
-		return nil
-	}
-
-	// make a list of tarballs
-	tarBalls, err := utils.ListTarGzFiles(collectionsPath)
+	err = processCollections(apath, collectionsPath)
 	if err != nil {
-		return err
+		fmt.Printf("ERROR: %s\n", err)
 	}
 
-	// we need the metdata from each file
-	metadataDir := filepath.Join(apath, "metadata")
-	err = utils.MakeDirs(metadataDir)
+	// assert it has a collections subdir
+	rolesPath := filepath.Join(apath, "roles")
+	err = processRoles(apath, rolesPath)
 	if err != nil {
-		return err
+		fmt.Printf("ERROR: %s\n", err)
 	}
-
-	// store all manifests
-	manifests := []Manifest{}
-	filescache := []CachedFileInfo{}
-
-	for _, file := range tarBalls {
-		fmt.Printf("%s\n", file)
-
-		// get MANIFEST.json + FILES.json
-		fmap, err := utils.ExtractJSONFilesFromTarGz(file, []string{"MANIFEST.json", "FILES.json"})
-		if err != nil {
-			fmt.Printf("ERROR extracting %s\n", err)
-			continue
-		}
-
-		var manifest Manifest
-		var filesdata FilesMeta
-
-		err = json.Unmarshal(fmap["MANIFEST.json"], &manifest)
-		if err != nil {
-			fmt.Printf("ERROR %s\n", err)
-			continue
-		}
-		//fmt.Printf("%s\n", manifest)
-		manifests = append(manifests, manifest)
-
-		err = json.Unmarshal(fmap["FILES.json"], &filesdata)
-		if err != nil {
-			fmt.Printf("ERROR %s\n", err)
-			continue
-		}
-
-		//fmt.Printf("%s\n", filesdata.Files[0])
-		//namespace = manifest.Namespace
-		//name = manifest.Name
-		//version = manifest.Version
-
-		for _, f := range filesdata.Files {
-			//fmt.Printf("\t%s\n", f.Name)
-
-			fDs := CachedFileInfo{
-				Namespace:      manifest.CollectionInfo.Namespace,
-				Name:           manifest.CollectionInfo.Name,
-				Version:        manifest.CollectionInfo.Version,
-				FileName:       f.Name,
-				FileType:       f.FType,
-				CheckSumSHA256: f.CheckSumSHA256,
-			}
-
-			filescache = append(filescache, fDs)
-
-		}
-
-	}
-
-	// write manifests.tar.gz
-	manifestsFilePath := filepath.Join(apath, "collection_manifests.tar.gz")
-	fmt.Printf("write %s\n", manifestsFilePath)
-	createManifestsTarGz(manifests, manifestsFilePath)
-
-	// write files.tar.gz
-	fmt.Printf("total files %d\n", len(filescache))
-	cachedFilesPath := filepath.Join(apath, "collection_files.tar.gz")
-	saveCachedFilesToGzippedFile(filescache, cachedFilesPath, 1000000)
 
 	// write repodata.json
 	currentTime := time.Now().UTC()
@@ -405,11 +445,176 @@ func CreateRepo(dest string) error {
 	return nil
 }
 
-func SortManifestsByVersion(manifests []Manifest) ([]Manifest, error) {
+func processCollections(basePath string, collectionsPath string) (error) {
+
+	if !utils.IsDir(collectionsPath) {
+		fmt.Printf("%s is not a directory\n", collectionsPath)
+		return nil
+		//hasCollections = false
+	}
+
+	// make a list of tarballs
+	collectionTarBalls, err := utils.ListTarGzFiles(collectionsPath)
+	if err != nil {
+		return err
+	}
+
+	// we need the metdata from each file
+	metadataDir := filepath.Join(basePath, "metadata")
+	err = utils.MakeDirs(metadataDir)
+	if err != nil {
+		return err
+	}
+
+	// store all collectionManifests
+	collectionManifests := []CollectionManifest{}
+	collectionFilesCache := []CollectionCachedFileInfo{}
+
+	for _, file := range collectionTarBalls {
+		fmt.Printf("%s\n", file)
+
+		// get MANIFEST.json + FILES.json
+		fmap, err := utils.ExtractJSONFilesFromTarGz(file, []string{"MANIFEST.json", "FILES.json"})
+		if err != nil {
+			fmt.Printf("ERROR extracting %s\n", err)
+			continue
+		}
+
+		var manifest CollectionManifest
+		var filesdata CollectionFilesMeta
+
+		err = json.Unmarshal(fmap["MANIFEST.json"], &manifest)
+		if err != nil {
+			fmt.Printf("ERROR %s\n", err)
+			continue
+		}
+		//fmt.Printf("%s\n", manifest)
+		collectionManifests = append(collectionManifests, manifest)
+
+		err = json.Unmarshal(fmap["FILES.json"], &filesdata)
+		if err != nil {
+			fmt.Printf("ERROR %s\n", err)
+			continue
+		}
+
+		for _, f := range filesdata.Files {
+			fDs := CollectionCachedFileInfo{
+				Namespace:      manifest.CollectionInfo.Namespace,
+				Name:           manifest.CollectionInfo.Name,
+				Version:        manifest.CollectionInfo.Version,
+				FileName:       f.Name,
+				FileType:       f.FType,
+				CheckSumSHA256: f.CheckSumSHA256,
+			}
+
+			collectionFilesCache = append(collectionFilesCache, fDs)
+
+		}
+
+	}
+
+	// write manifests.tar.gz
+	collectionManifestsFilePath := filepath.Join(basePath, "collection_manifests.tar.gz")
+	fmt.Printf("write %s\n", collectionManifestsFilePath)
+	createCollectionManifestsTarGz(collectionManifests, collectionManifestsFilePath)
+
+	// write files.tar.gz
+	fmt.Printf("total files %d\n", len(collectionFilesCache))
+	collectionsCachedFilesPath := filepath.Join(basePath, "collection_files.tar.gz")
+	saveCachedFilesToGzippedFile(collectionFilesCache, collectionsCachedFilesPath, 1000000)
+
+	return nil
+}
+
+func processRoles(basePath string, rolesPath string) (error) {
+	if !utils.IsDir(rolesPath) {
+		fmt.Printf("%s is not a directory\n", rolesPath)
+		return nil
+		//hasCollections = false
+	}
+
+	// make a list of tarballs
+	roleTarBalls, err := utils.ListTarGzFiles(rolesPath)
+	if err != nil {
+		return err
+	}
+
+	// we need the metdata from each file
+	metadataDir := filepath.Join(basePath, "metadata")
+	err = utils.MakeDirs(metadataDir)
+	if err != nil {
+		return err
+	}
+
+	// store all collectionManifests
+	//roleMetas := []RoleMeta{}
+	//roleFilesCache := []RoleCachedFileInfo{}
+
+	for _, f := range roleTarBalls {
+		fmt.Printf("tar: %s\n", f)
+
+		// func ListTarGzFiles(dir string) ([]string, error) {
+		tarFileNames, _ := utils.ListFilenamesInTarGz(f)
+		metaFile := ""
+		for _, tfn := range tarFileNames {
+			//fmt.Printf("\t%s\n", tfn)
+			if utils.EndsWithMetaMainYAML(tfn) {
+				//fmt.Printf("\t%s\n", tfn)
+				metaFile = tfn
+				//break
+			}
+		}
+		//fmt.Printf("tarfiles: %s\n", tarFileNames)
+
+		// get MANIFEST.json + FILES.json
+		//fmt.Printf("extract %s\n", metaFile)
+		//fmap, err := utils.ExtractJSONFilesFromTarGz(f, []string{metaFile})
+		fmap, err := utils.ExtractFilesFromTarGz(f, []string{metaFile})
+		if err != nil {
+			fmt.Printf("ERROR extracting %s\n", err)
+			continue
+		}
+		//fmt.Printf("raw: %s\n", fmap["meta/main.yml"])
+		//fmt.Printf("raw:\n%s\n", fmap[metaFile])
+
+		var meta RoleMeta
+
+		err = yaml.Unmarshal(fmap[metaFile], &meta)
+		if err != nil {
+			fmt.Printf("ERROR %s\n", err)
+			continue
+		}
+		//fmt.Printf("umarshalled:\n%s\n", meta.GalaxyInfo)
+
+		//if len(meta.GalaxyInfo.Dependencies) > 0 {
+		//	panic("check this!!!")
+		//}
+
+		for _, tfn := range tarFileNames {
+			fmt.Printf("%s\n", tfn)
+			relativePath := utils.RemoveFirstPathElement(tfn)
+			fmt.Printf("\t%s\n", relativePath)
+
+			/*
+			cf := RoleCachedFileInfo{
+				Namespace: meta.GalaxyInfo.Namespace,
+				Name: meta.GalaxyInfo.Namespace,
+				//Version: meta.GalaxyInfo.Version,
+			}
+			*/
+		}
+
+	}
+
+
+	return nil
+}
+
+func SortManifestsByVersion(manifests []CollectionManifest) ([]CollectionManifest, error) {
 	// Define a custom type for sorting
 	type semverManifest struct {
 		version  semver.Version
-		manifest Manifest
+		manifest CollectionManifest
 	}
 
 	// Convert manifests to semverManifests
@@ -428,7 +633,7 @@ func SortManifestsByVersion(manifests []Manifest) ([]Manifest, error) {
 	})
 
 	// Extract sorted manifests
-	sortedManifests := make([]Manifest, len(semverManifests))
+	sortedManifests := make([]CollectionManifest, len(semverManifests))
 	for i, semverManifest := range semverManifests {
 		sortedManifests[i] = semverManifest.manifest
 	}
@@ -446,4 +651,74 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 		}
 		return (*specs)[i].Version < (*specs)[j].Version
 	})
+}
+
+
+func GetRoleMetaFromTarball(f string) (RoleMeta, error){
+
+	var meta RoleMeta
+
+	tarFileNames, _ := utils.ListFilenamesInTarGz(f)
+
+	metaFile := ""
+	for _, tfn := range tarFileNames {
+		if utils.EndsWithMetaMainYAML(tfn) {
+			metaFile = tfn
+			break
+		}
+	}
+
+	fmap, err := utils.ExtractFilesFromTarGz(f, []string{metaFile})
+	if err != nil {
+		fmt.Printf("ERROR extracting %s\n", err)
+		return meta, err
+	}
+
+	//fmt.Printf("raw:\n%s\n", fmap[metaFile])
+
+	err = yaml.Unmarshal(fmap[metaFile], &meta)
+
+
+	
+	if err != nil {
+		// fix indentation if possible ...
+		if strings.Contains(err.Error(), "did not find expected key") {
+			fmt.Printf("FIXING YAML IN MEMORY...\n")
+			rawstring := string(fmap[metaFile])
+			newstring, _ := utils.FixGalaxyIndentation(rawstring)
+			newstring = utils.AddQuotesToDescription(newstring)
+
+			var meta2 RoleMeta
+			err = yaml.Unmarshal([]byte(newstring), &meta2)
+			if err == nil {
+				return meta2, nil
+			}
+
+			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+			lines := strings.Split(newstring, "\n")
+			for ix, line := range lines {
+				fmt.Printf("%d:%s\n", ix + 1, line)
+			}
+			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+			//return meta2, err
+			panic("")
+		}
+	}
+
+	if err != nil {
+
+		fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+		//fmt.Printf("RAW:\n%s\n", fmap[metaFile])
+		rawstring := string(fmap[metaFile])
+		lines := strings.Split(rawstring, "\n")
+		for ix, line := range lines {
+			fmt.Printf("%d:%s\n", ix + 1, line)
+		}
+		fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+		os.Remove(f)
+		panic("")
+		//return meta, err
+	}
+
+	return meta, nil
 }

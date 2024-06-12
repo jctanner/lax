@@ -136,7 +136,7 @@ func (client *FileRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.Insta
 	// load the collections manifests
 	collectionsManifestsFile := filepath.Join(client.BasePath, client.CollectionManifests.Filename)
 	fmt.Printf("reading %s\n", collectionsManifestsFile)
-	manifests, _ := ExtractManifestsFromTarGz(collectionsManifestsFile)
+	manifests, _ := ExtractCollectionManifestsFromTarGz(collectionsManifestsFile)
 	specs := []utils.InstallSpec{}
 	resolveDeps(spec, &manifests, &specs)
 
@@ -224,7 +224,7 @@ func (client *HttpRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.Insta
 	// load the collections manifests
 	collectionsManifestsFile := filepath.Join(client.CachePath, client.CollectionManifests.Filename)
 	fmt.Printf("reading %s\n", collectionsManifestsFile)
-	manifests, _ := ExtractManifestsFromTarGz(collectionsManifestsFile)
+	manifests, _ := ExtractCollectionManifestsFromTarGz(collectionsManifestsFile)
 	specs := []utils.InstallSpec{}
 	resolveDeps(spec, &manifests, &specs)
 
@@ -241,7 +241,7 @@ func GetRepoClient(repo string, cachePath string) (RepoClient, error) {
 	}
 }
 
-func resolveDeps(spec utils.InstallSpec, manifests *[]Manifest, specs *[]utils.InstallSpec) {
+func resolveDeps(spec utils.InstallSpec, manifests *[]CollectionManifest, specs *[]utils.InstallSpec) {
 
 	candidates := SpecToManifestCandidates(spec, manifests)
 
@@ -303,9 +303,9 @@ func resolveDeps(spec utils.InstallSpec, manifests *[]Manifest, specs *[]utils.I
 Given a utils.InstallSpec, reduce a list of repository.Manifest down to the matching
 candidates via their namespace, name and version (which can include an operator)
 */
-func SpecToManifestCandidates(spec utils.InstallSpec, manifests *[]Manifest) []Manifest {
+func SpecToManifestCandidates(spec utils.InstallSpec, manifests *[]CollectionManifest) []CollectionManifest {
 	// get the meta for the incoming spec
-	candidates := []Manifest{}
+	candidates := []CollectionManifest{}
 	for _, manifest := range *manifests {
 		if manifest.CollectionInfo.Namespace != spec.Namespace {
 			continue

@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func GalaxySync(server string, dest string, collections_only bool, roles_only bool) error {
+func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, namespace string, name string) error {
 
 	fmt.Printf("syncing %s to %s\n", server, dest)
 	
@@ -34,7 +34,7 @@ func GalaxySync(server string, dest string, collections_only bool, roles_only bo
 	}
 
 	if roles_only || !collections_only {
-		roles, err := syncRoles(server, dest, apiClient)
+		roles, err := syncRoles(apiClient, namespace, name)
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func GalaxySync(server string, dest string, collections_only bool, roles_only bo
 
 		// store all the role data into a tar.gz file ...
 
-		maxConcurrent := 4
+		maxConcurrent := download_concurrency
 
 		var wg sync.WaitGroup
 		sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency

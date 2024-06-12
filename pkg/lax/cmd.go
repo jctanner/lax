@@ -25,6 +25,8 @@ var name string
 var version string
 var requirements_file string
 
+var download_concurrency int
+
 func Execute() {
 
 	defaultDestDir := utils.ExpandUser("~/.ansible")
@@ -55,7 +57,7 @@ func Execute() {
 		Use:   "createrepo",
 		Short: "Create repository metadata from a directory of artifacts",
 		Run: func(cmd *cobra.Command, args []string) {
-			repository.CreateRepo(dest)
+			repository.CreateRepo(dest, roles_only, collections_only)
 		},
 	}
 
@@ -109,7 +111,7 @@ func Execute() {
 			if server == "" {
 				server = "https://galaxy.ansible.com"
 			}
-			err := galaxy_sync.GalaxySync(server, dest, collections_only, roles_only)
+			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, namespace, name)
 			if err != nil {
 				fmt.Printf("ERROR: %s\n", err)
 			}
@@ -126,6 +128,8 @@ func Execute() {
 	*/
 
 	createRepoCmd.Flags().StringVar(&dest, "dest", "", "where the files are")
+	createRepoCmd.Flags().BoolVar(&collections_only, "collections", false, "just process collections")
+	createRepoCmd.Flags().BoolVar(&roles_only, "roles", false, "just process roles")
 
 	collectionInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
 	collectionInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
@@ -146,6 +150,9 @@ func Execute() {
 	syncCmd.Flags().BoolVar(&collections_only, "collections", false, "just sync collections")
 	syncCmd.Flags().BoolVar(&roles_only, "roles", false, "just sync roles")
 	syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
+	syncCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
+	syncCmd.Flags().StringVar(&name, "name", "", "name")
+	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 4, "concurrency")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 

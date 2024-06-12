@@ -58,10 +58,17 @@ type RoleVersion struct {
 }
 
 // GetRoles fetches all the roles from the server's base URL
-func (c *CachedGalaxyClient) GetRoles() ([]Role, error) {
+func (c *CachedGalaxyClient) GetRoles(namespace string, name string) ([]Role, error) {
 
 	var allRoles []Role
 	url := fmt.Sprintf("%s/api/v1/roles/?order_by=-modified", c.baseUrl)
+	if namespace != "" && name != "" {
+		url = url + fmt.Sprintf("&namespace=%s&name=%s", namespace, name)
+	} else if namespace != "" {
+		url = url + fmt.Sprintf("&namespace=%s", namespace)
+	} else if name != "" {
+		url = url + fmt.Sprintf("&name=%s", name)
+	}
 
 	roleCount := 0;
 	rolesFetched := 0;
