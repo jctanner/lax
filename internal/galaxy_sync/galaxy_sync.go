@@ -9,7 +9,7 @@ import (
 
 func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, namespace string, name string) error {
 
-	fmt.Printf("syncing %s to %s\n", server, dest)
+	fmt.Printf("syncing %s to %s collections:%s roles:%s\n", server, dest, collections_only, roles_only)
 	
 	// need to make sure the dest exists
 	dest = utils.ExpandUser(dest)
@@ -89,17 +89,13 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 
 
 	}
-
 	
-
-	/*
 	if collections_only || !roles_only {
 		err := syncCollections(server, dest, apiClient)
 		if err != nil {
 			return err
 		}
 	}
-	*/
 
 	return nil
 }

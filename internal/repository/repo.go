@@ -98,6 +98,12 @@ type GalaxyInfo struct {
 	Author string `yaml:"author"`
 	Namespace string `yaml:"namespace"`
 	RoleName string `yaml:"role_name"`
+
+	// this doesn't actually exist
+	// but we want to have a settable
+	// property for the index files
+	Version string `yaml:"version"`
+	
 	Description string `yaml:"description"`
 	License RoleLicense `yaml:"license"`
 	MinAnsibleVersion string `json:"min_ansible_version"`
@@ -112,36 +118,6 @@ type RolePlatform struct {
 }
 
 type RolePlatformVersions []string
-
-/*
-func (rp *RolePlatform) UnmarshalYAML(unmarshal func(interface{}) error) error {
-    var temp struct {
-        Name     string      `yaml:"name"`
-        Versions interface{} `yaml:"versions"`
-    }
-
-    if err := unmarshal(&temp); err != nil {
-        return err
-    }
-
-    rp.Name = temp.Name
-
-    switch v := temp.Versions.(type) {
-    case string:
-        rp.Versions = RolePlatformVersions{v}
-    case []interface{}:
-        var versions RolePlatformVersions
-        for _, version := range v {
-            versions = append(versions, version.(string))
-        }
-        rp.Versions = versions
-    default:
-        return fmt.Errorf("unexpected type for versions: %T", temp.Versions)
-    }
-
-    return nil
-}
-*/
 
 func (rp *RolePlatform) UnmarshalYAML(unmarshal func(interface{}) error) error {
     var temp struct {
@@ -338,7 +314,66 @@ func ExtractCollectionManifestsFromTarGz(tarGzPath string) ([]CollectionManifest
 	return manifests, nil
 }
 
-func saveCachedFilesToGzippedFile(manifests []CollectionCachedFileInfo, filePath string, chunkSize int) error {
+
+func createRoleMetaTarGz(manifests []RoleMeta, tarGzPath string) error {
+	// Create a buffer to write the tar archive
+	var buf bytes.Buffer
+
+	// Create a tar writer
+	tarWriter := tar.NewWriter(&buf)
+
+	// Add each manifest as a JSON file to the tar archive
+	for i, manifest := range manifests {
+		// Marshal the manifest to JSON
+		jsonData, err := json.Marshal(manifest)
+		if err != nil {
+			return fmt.Errorf("failed to marshal manifest to JSON: %w", err)
+		}
+
+		// Create a tar header for the JSON file
+		header := &tar.Header{
+			Name: fmt.Sprintf("manifest_%d.json", i),
+			Mode: 0600,
+			Size: int64(len(jsonData)),
+		}
+
+		// Write the header to the tar archive
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return fmt.Errorf("failed to write tar header: %w", err)
+		}
+
+		// Write the JSON data to the tar archive
+		if _, err := tarWriter.Write(jsonData); err != nil {
+			return fmt.Errorf("failed to write JSON data to tar archive: %w", err)
+		}
+	}
+
+	// Close the tar writer
+	if err := tarWriter.Close(); err != nil {
+		return fmt.Errorf("failed to close tar writer: %w", err)
+	}
+
+	// Create the output file for the tar.gz archive
+	outFile, err := os.Create(tarGzPath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer outFile.Close()
+
+	// Create a gzip writer
+	gzipWriter := gzip.NewWriter(outFile)
+	defer gzipWriter.Close()
+
+	// Write the tar archive to the gzip writer
+	if _, err := gzipWriter.Write(buf.Bytes()); err != nil {
+		return fmt.Errorf("failed to write tar data to gzip writer: %w", err)
+	}
+
+	return nil
+}
+
+func saveCachedCollectionFilesToGzippedFile(manifests []CollectionCachedFileInfo, filePath string, chunkSize int) error {
+
 	// Create the output file
 	outFile, err := os.Create(filePath)
 	if err != nil {
@@ -374,6 +409,45 @@ func saveCachedFilesToGzippedFile(manifests []CollectionCachedFileInfo, filePath
 
 	return nil
 }
+
+func saveCachedRoleFilesToGzippedFile(manifests []RoleCachedFileInfo, filePath string, chunkSize int) error {
+
+	// Create the output file
+	outFile, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer outFile.Close()
+
+	// Create a gzip writer
+	gzipWriter := gzip.NewWriter(outFile)
+	defer gzipWriter.Close()
+
+	// Create a buffer and an encoder for the gob
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+
+	for start := 0; start < len(manifests); start += chunkSize {
+		end := start + chunkSize
+		if end > len(manifests) {
+			end = len(manifests)
+		}
+
+		// Encode the chunk to the buffer
+		buf.Reset() // Clear the buffer
+		if err := encoder.Encode(manifests[start:end]); err != nil {
+			return fmt.Errorf("failed to encode chunk: %w", err)
+		}
+
+		// Write the buffer to the gzip writer
+		if _, err := gzipWriter.Write(buf.Bytes()); err != nil {
+			return fmt.Errorf("failed to write chunk to gzip writer: %w", err)
+		}
+	}
+
+	return nil
+}
+
 
 func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
 
@@ -521,7 +595,7 @@ func processCollections(basePath string, collectionsPath string) (error) {
 	// write files.tar.gz
 	fmt.Printf("total files %d\n", len(collectionFilesCache))
 	collectionsCachedFilesPath := filepath.Join(basePath, "collection_files.tar.gz")
-	saveCachedFilesToGzippedFile(collectionFilesCache, collectionsCachedFilesPath, 1000000)
+	saveCachedCollectionFilesToGzippedFile(collectionFilesCache, collectionsCachedFilesPath, 1000000)
 
 	return nil
 }
@@ -547,65 +621,43 @@ func processRoles(basePath string, rolesPath string) (error) {
 	}
 
 	// store all collectionManifests
-	//roleMetas := []RoleMeta{}
-	//roleFilesCache := []RoleCachedFileInfo{}
+	roleMeta := []RoleMeta{}
+	roleFilesCache := []RoleCachedFileInfo{}
 
 	for _, f := range roleTarBalls {
 		fmt.Printf("tar: %s\n", f)
 
-		// func ListTarGzFiles(dir string) ([]string, error) {
+		version := extractRoleVersionFromTarName(f)
+
+		rmeta, _ := GetRoleMetaFromTarball(f)
+		rmeta.GalaxyInfo.Version = version
+
 		tarFileNames, _ := utils.ListFilenamesInTarGz(f)
-		metaFile := ""
-		for _, tfn := range tarFileNames {
-			//fmt.Printf("\t%s\n", tfn)
-			if utils.EndsWithMetaMainYAML(tfn) {
-				//fmt.Printf("\t%s\n", tfn)
-				metaFile = tfn
-				//break
-			}
-		}
-		//fmt.Printf("tarfiles: %s\n", tarFileNames)
-
-		// get MANIFEST.json + FILES.json
-		//fmt.Printf("extract %s\n", metaFile)
-		//fmap, err := utils.ExtractJSONFilesFromTarGz(f, []string{metaFile})
-		fmap, err := utils.ExtractFilesFromTarGz(f, []string{metaFile})
-		if err != nil {
-			fmt.Printf("ERROR extracting %s\n", err)
-			continue
-		}
-		//fmt.Printf("raw: %s\n", fmap["meta/main.yml"])
-		//fmt.Printf("raw:\n%s\n", fmap[metaFile])
-
-		var meta RoleMeta
-
-		err = yaml.Unmarshal(fmap[metaFile], &meta)
-		if err != nil {
-			fmt.Printf("ERROR %s\n", err)
-			continue
-		}
-		//fmt.Printf("umarshalled:\n%s\n", meta.GalaxyInfo)
-
-		//if len(meta.GalaxyInfo.Dependencies) > 0 {
-		//	panic("check this!!!")
-		//}
-
 		for _, tfn := range tarFileNames {
 			fmt.Printf("%s\n", tfn)
 			relativePath := utils.RemoveFirstPathElement(tfn)
 			fmt.Printf("\t%s\n", relativePath)
 
-			/*
 			cf := RoleCachedFileInfo{
-				Namespace: meta.GalaxyInfo.Namespace,
-				Name: meta.GalaxyInfo.Namespace,
-				//Version: meta.GalaxyInfo.Version,
+				Namespace: rmeta.GalaxyInfo.Namespace,
+				Name: rmeta.GalaxyInfo.Namespace,
+				Version: version,
+				FileName: tfn,
 			}
-			*/
+			roleFilesCache = append(roleFilesCache, cf)
 		}
 
 	}
 
+	// write manifests.tar.gz
+	roleMetaFilePath := filepath.Join(basePath, "role_manifests.tar.gz")
+	fmt.Printf("write %s\n", roleMetaFilePath)
+	createRoleMetaTarGz(roleMeta, roleMetaFilePath)
+
+	// write files.tar.gz
+	fmt.Printf("total files %d\n", len(roleFilesCache))
+	roleCachedFilesPath := filepath.Join(basePath, "role_files.tar.gz")
+	saveCachedRoleFilesToGzippedFile(roleFilesCache, roleCachedFilesPath, 1000000)
 
 	return nil
 }
@@ -719,4 +771,21 @@ func GetRoleMetaFromTarball(f string) (RoleMeta, error){
 	}
 
 	return meta, nil
+}
+
+
+
+
+func extractRoleVersionFromTarName(path string) string {
+	// Split the path into components
+	components := strings.Split(path, "/")
+	// Get the last component (filename)
+	filename := components[len(components)-1]
+	// Split the filename by hyphens
+	parts := strings.Split(filename, "-")
+	// Get the part before the last part and the extension
+	versionWithExt := parts[len(parts)-1]
+	// Remove the extension from the version
+	version := strings.TrimSuffix(versionWithExt, filepath.Ext(versionWithExt))
+	return version
 }
