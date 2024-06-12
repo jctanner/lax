@@ -33,7 +33,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 
 	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version.Name)
 	tarFilePath := filepath.Join(destdir, tarName)
-	if utils.IsFile(tarFilePath) {
+	if utils.IsFile(tarFilePath) || utils.IsLink(tarFilePath) {
 		return tarFilePath, nil
 	}
 	//fmt.Printf("NEEED TO FETCH %s\n", tarFilePath)
@@ -97,12 +97,24 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	newFp := filepath.Join(destdir, newFn)
 
 	fmt.Printf("rename %s -> %s\n", tarFilePath, newFp)
-	fmt.Printf("symlink %s -> %s", tarFilePath, newFp)
+	fmt.Printf("symlink %s -> %s\n", tarFilePath, newFp)
 	err = os.Rename(tarFilePath, newFp)
+
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		panic("")
 	}
 
+	err = utils.CreateSymlink(newFp, tarFilePath)
+	//err = utils.CreateSymlink(tarFilePath, newFp)
+
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		panic("")
+	}
+
+	//panic("")
+
 	return "", nil
 }
+

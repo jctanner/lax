@@ -105,6 +105,17 @@ func IsFile(path string) bool {
 	return false
 }
 
+func IsLink(path string) bool {
+	finfo, err := GetFileInfo(path)
+	if err != nil {
+		return false
+	}
+	if finfo.Type == "symbolic link" {
+		return true
+	}
+	return false
+}
+
 func MakeDirs(path string) error {
 	//fmt.Printf("MAKEDIRS: %s\n", path)
 	// Check if the path exists
@@ -418,4 +429,84 @@ func RemoveFirstPathElement(path string) string {
         return filepath.Join(parts[1:]...)
     }
     return path // Return the original path if there's only one part
+}
+
+
+/*
+// CreateSymlink creates a symbolic link in the same directory as the source file
+func CreateSymlink(srcFile string, linkName string) error {
+	// Get the absolute path of the source file
+	srcPath, err := filepath.Abs(srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path of source file: %w", err)
+	}
+
+	// Get the directory of the source file
+	srcDir := filepath.Dir(srcPath)
+
+	// Construct the full path for the symlink
+	linkPath := filepath.Join(srcDir, linkName)
+
+	// Create the symbolic link
+	relativeSrcPath, err := filepath.Rel(srcDir, srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to get relative path: %w", err)
+	}
+
+	err = os.Symlink(relativeSrcPath, linkPath)
+	if err != nil {
+		return fmt.Errorf("failed to create symlink: %w", err)
+	}
+
+	return nil
+}
+*/
+
+/*
+func CreateSymlink(srcFile, linkName string) error {
+	// Get the absolute path of the source file
+	srcPath, err := filepath.Abs(srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path of source file: %w", err)
+	}
+
+	// Get the directory of the source file
+	srcDir := filepath.Dir(srcPath)
+
+	// Construct the full path for the symlink
+	linkPath := filepath.Join(srcDir, linkName)
+
+	// Create the symbolic link using the absolute path
+	err = os.Symlink(srcPath, linkPath)
+	if err != nil {
+		return fmt.Errorf("failed to create symlink: %w", err)
+	}
+
+	return nil
+}
+*/
+
+func CreateSymlink(srcFile string, linkName string) error {
+	// Get the absolute path of the source file
+	srcPath, err := filepath.Abs(srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path of source file: %w", err)
+	}
+
+	// Get the directory and base name of the source file
+	srcDir := filepath.Dir(srcPath)
+	srcBase := filepath.Base(srcPath)
+
+	linkName = filepath.Base(linkName)
+
+	// Construct the shell command to create the symlink
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("cd %s && ln -s %s %s", srcDir, srcBase, linkName))
+
+	// Run the shell command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to create symlink: %w, output: %s", err, output)
+	}
+
+	return nil
 }

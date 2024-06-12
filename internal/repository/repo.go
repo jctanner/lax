@@ -678,11 +678,9 @@ func GetRoleMetaFromTarball(f string) (RoleMeta, error){
 
 	err = yaml.Unmarshal(fmap[metaFile], &meta)
 
-
-	
 	if err != nil {
 		// fix indentation if possible ...
-		if strings.Contains(err.Error(), "did not find expected key") {
+		if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") {
 			fmt.Printf("FIXING YAML IN MEMORY...\n")
 			rawstring := string(fmap[metaFile])
 			newstring, _ := utils.FixGalaxyIndentation(rawstring)
