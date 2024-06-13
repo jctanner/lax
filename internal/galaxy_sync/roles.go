@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -19,11 +20,13 @@ func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, late
 		log.Fatalf("Error fetching roles: %v", err)
 	}
 
-	/*
-	for _, role := range roles {
-		fmt.Printf("Role ID: %d, GUser:%s, GRepo: %s, Name: %s\n", role.ID, role.GithubUser, role.GithubRepo, role.Name)
-	}
-	*/
+	// Sort the list by GithubUser and then by GithubRepo
+	sort.Slice(roles, func(i, j int) bool {
+		if roles[i].GithubUser == roles[j].GithubUser {
+			return roles[i].GithubRepo < roles[j].GithubRepo
+		}
+		return roles[i].GithubUser < roles[j].GithubUser
+	})
 
 	return roles, nil
 }
@@ -151,10 +154,12 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	utils.MakeDirs(gitDir)
 	repoPath := path.Join(gitDir, fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo))
 	if !utils.IsDir(repoPath) {
+		fmt.Printf("clone %s -> %s\n", repoUrl, repoPath)
 		err := utils.CloneRepo(repoUrl, repoPath)
 		if err != nil {
-			fmt.Printf("failed to clone %s %s\n", repoUrl, err)
-			panic("")
+			fmt.Printf("failed to clone %s to %s ::%s\n", repoUrl, repoPath, err)
+			//panic("")
+			return "", err
 		}
 	}
 
@@ -193,7 +198,8 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
 	if err != nil {
 		fmt.Printf("%s\n", err)
-		panic("")
+		//panic("")
+		return "", err
 	}
 	return dstFile, nil
 

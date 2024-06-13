@@ -3,8 +3,10 @@ package galaxy_sync
 import (
 	"fmt"
 	"lax/internal/utils"
+	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, latest_only bool, namespace string, name string) error {
@@ -74,6 +76,13 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 				//if len(role.SummaryFields.Versions) == 0 {
 				//	return
 				//}
+
+				badFile := fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo)
+				badFile = path.Join(rolesDir, badFile)
+				if utils.IsFile(badFile) {
+					fmt.Printf("found %s, skipping\n", badFile)
+					return
+				}
 	
 				if len(role.SummaryFields.Versions) > 0 {
 					versions := role.SummaryFields.Versions
@@ -85,15 +94,39 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 						go func(role Role, roleVersion RoleVersion) {
 							defer func() { <-sem }() // release the slot
 		
-							fn, _ := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+							vBadFile := fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name)
+							vBadFile = path.Join(rolesDir, vBadFile)
+							if utils.IsFile(vBadFile) {
+								fmt.Printf("found %s, skipping\n", vBadFile)
+								return
+							}
+
+							time.Sleep(2 * time.Second)
+							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
 							fmt.Printf("\t\t%s\n", fn)
+
+							if err == nil {
+								fmt.Printf("\t\t%s\n", fn)
+							} else {
+								// can we mark this as "BAD" somehow ... ?
+								file, _ := os.Create(vBadFile)
+								defer file.Close() // Ensure the file is closed
+							}
+
 						}(role, roleVersion)
 					}
 				} else {
 					//fmt.Printf("NO VERSIONS!!!\n")
+					time.Sleep(2 * time.Second)
 					fmt.Printf("Enumerting virtual role version ...\n")
-					fn, _ := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
-					fmt.Printf("\t\t%s\n", fn)
+					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+					if err == nil {
+						fmt.Printf("\t\t%s\n", fn)
+					} else {
+						// can we mark this as "BAD" somehow ... ?
+						file, _ := os.Create(badFile)
+						defer file.Close() // Ensure the file is closed
+					}
 				}
 			}(ix, role)
 		}

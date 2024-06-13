@@ -647,6 +647,7 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 	matches, err := filepath.Glob(searchPattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search for files: %w", err)
+		panic("")
 	}
 
 	return matches, nil

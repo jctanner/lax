@@ -163,7 +163,6 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 		panic("")
 	}
 
-
 	currentTime := time.Now()
 	formattedTime := currentTime.Format("Mon 02 Jan 2006 03:04:05 PM ")
 	infoYAML := RoleInstallInfo{
