@@ -8,6 +8,9 @@ import (
 	"lax/internal/utils"
 	"os"
 	"path/filepath"
+	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 // gets stored with an installed collection ...
@@ -160,13 +163,28 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 		panic("")
 	}
 
-	/*
+
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("Mon 02 Jan 2006 03:04:05 PM ")
 	infoYAML := RoleInstallInfo{
-		InstallDate: "Thu 13 Jun 2024 02:23:22 PM ",
+		InstallDate: formattedTime,
 		Version: version,
 	}
-	yamlData, err := yaml.Marshal(infoYAML)
-	*/
+	yamlData, _ := yaml.Marshal(infoYAML)
+	ymlFileName := filepath.Join(dirPath, "meta", ".galaxy_install_info")
+
+	// Write the yaml data to a file
+	file, err := os.Create(ymlFileName)
+	if err != nil {
+		fmt.Printf("Error creating yml file: %v\n", err)
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Write(yamlData); err != nil {
+		fmt.Printf("Error writing to yml file: %v\n", err)
+		return err
+	}
 	
 	return nil
 }
