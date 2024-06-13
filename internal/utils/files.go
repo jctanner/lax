@@ -99,7 +99,7 @@ func IsFile(path string) bool {
 	if err != nil {
 		return false
 	}
-	if finfo.Type == "regular file" {
+	if finfo.Type == "regular file" || finfo.Type == "regular empty file" {
 		return true
 	}
 	return false

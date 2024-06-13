@@ -140,7 +140,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 
 	// short circuit if the role has a commit and there's a relevant tarball
 	globPattern := fmt.Sprintf("%s-%s-*-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, role.Commit)
-	fmt.Printf("%s\n", globPattern)
+	fmt.Printf("looking for files matching %s\n", globPattern)
 	matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
 	fmt.Printf("%s\n", matches)
 	if len(matches) > 0 {

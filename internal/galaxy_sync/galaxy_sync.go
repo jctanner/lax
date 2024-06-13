@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"time"
 )
 
 func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, latest_only bool, namespace string, name string) error {
@@ -62,6 +61,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 
 		// store all the role data into a tar.gz file ...
 
+		/*
 		maxConcurrent := download_concurrency
 
 		var wg sync.WaitGroup
@@ -96,21 +96,28 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 		
 							vBadFile := fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name)
 							vBadFile = path.Join(rolesDir, vBadFile)
+							vBadFile, _ = utils.GetAbsPath(vBadFile)
+							fmt.Printf("checking for %s\n", vBadFile)
 							if utils.IsFile(vBadFile) {
 								fmt.Printf("found %s, skipping\n", vBadFile)
 								return
+							} else {
+								fmt.Printf("%s not found\n", vBadFile)
 							}
 
 							time.Sleep(2 * time.Second)
+							fmt.Printf("GET %s %s\n", role, roleVersion)
 							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
 							fmt.Printf("\t\t%s\n", fn)
 
-							if err == nil {
-								fmt.Printf("\t\t%s\n", fn)
-							} else {
+							if err != nil {
 								// can we mark this as "BAD" somehow ... ?
 								file, _ := os.Create(vBadFile)
-								defer file.Close() // Ensure the file is closed
+								defer file.Close() // Ensure the file is closed								
+							}
+
+							if err == nil {
+								fmt.Printf("\t\t%s\n", fn)
 							}
 
 						}(role, roleVersion)
@@ -118,7 +125,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 				} else {
 					//fmt.Printf("NO VERSIONS!!!\n")
 					time.Sleep(2 * time.Second)
-					fmt.Printf("Enumerting virtual role version ...\n")
+					fmt.Printf("Enumerating virtual role version ...\n")
 					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 					if err == nil {
 						fmt.Printf("\t\t%s\n", fn)
@@ -133,7 +140,77 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 	
 		wg.Wait()
 		close(sem) // close the semaphore channel
+		*/
 
+
+		maxConcurrent := download_concurrency
+
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
+	
+		for ix, role := range roles {
+			wg.Add(1)
+			go func(ix int, role Role) {
+				defer wg.Done()
+	
+				//fmt.Printf("%d: %s\n", ix, role)
+	
+				badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
+				if utils.IsFile(badFile) {
+					fmt.Printf("found %s, skipping\n", badFile)
+					return
+				}
+	
+				if len(role.SummaryFields.Versions) > 0 {
+					versions := role.SummaryFields.Versions
+					if latest_only {
+						versions, _ = reduceRoleVersionsToHighest(versions)
+					}
+					for _, roleVersion := range versions {
+						sem <- struct{}{} // acquire a slot
+						go func(role Role, roleVersion RoleVersion) {
+							defer func() { <-sem }() // release the slot
+	
+							vBadFile := path.Join(rolesDir, fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name))
+							vBadFile, _ = utils.GetAbsPath(vBadFile)
+							fmt.Printf("checking for %s\n", vBadFile)
+							if utils.IsFile(vBadFile) {
+								fmt.Printf("found %s, skipping\n", vBadFile)
+								return
+							}
+							
+							fmt.Printf("%s not found\n", vBadFile)
+							//time.Sleep(2 * time.Second)
+							fmt.Printf("GET %s %s\n", role, roleVersion)
+							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+							fmt.Printf("\t\t%s\n", fn)
+	
+							if err != nil {
+								// mark as "BAD"
+								file, _ := os.Create(vBadFile)
+								defer file.Close()
+							} else {
+								fmt.Printf("\t\t%s\n", fn)
+							}
+	
+						}(role, roleVersion)
+					}
+				} else {
+					//time.Sleep(2 * time.Second)
+					fmt.Printf("Enumerating virtual role version ...\n")
+					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+					if err != nil {
+						file, _ := os.Create(badFile)
+						defer file.Close()
+						return
+					}
+					fmt.Printf("\t\t%s\n", fn)
+				}
+			}(ix, role)
+		}
+	
+		wg.Wait()
+		close(sem) // close the semaphore channel
 
 	}
 	
