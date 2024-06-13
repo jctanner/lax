@@ -26,6 +26,7 @@ var version string
 var requirements_file string
 
 var download_concurrency int
+var latest_only bool
 
 func Execute() {
 
@@ -111,7 +112,7 @@ func Execute() {
 			if server == "" {
 				server = "https://galaxy.ansible.com"
 			}
-			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, namespace, name)
+			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, latest_only, namespace, name)
 			if err != nil {
 				fmt.Printf("ERROR: %s\n", err)
 			}
@@ -153,6 +154,7 @@ func Execute() {
 	syncCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
 	syncCmd.Flags().StringVar(&name, "name", "", "name")
 	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 4, "concurrency")
+	syncCmd.Flags().BoolVar(&latest_only, "latest", false, "get only the latest version")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 

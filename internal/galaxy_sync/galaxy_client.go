@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"lax/internal/utils"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type CachedGalaxyClient struct {
@@ -58,7 +60,7 @@ type RoleVersion struct {
 }
 
 // GetRoles fetches all the roles from the server's base URL
-func (c *CachedGalaxyClient) GetRoles(namespace string, name string) ([]Role, error) {
+func (c *CachedGalaxyClient) GetRoles(namespace string, name string, latest_only bool) ([]Role, error) {
 
 	var allRoles []Role
 	url := fmt.Sprintf("%s/api/v1/roles/?order_by=-modified", c.baseUrl)
@@ -95,7 +97,7 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string) ([]Role, er
 		for _, role := range rolesResponse.Results {
 			// Fetch all versions for each role if the summary has more than 10 ...
 			if len(role.SummaryFields.Versions) >= 10 {
-				versions, err := c.GetRoleVersions(role.ID)
+				versions, err := c.GetRoleVersions(role.ID, latest_only)
 				if err != nil {
 					return nil, err
 				}
@@ -116,7 +118,7 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string) ([]Role, er
 
 
 // GetVersions fetches all versions for a given role ID, handling pagination and caching
-func (c *CachedGalaxyClient) GetRoleVersions(roleID int) ([]RoleVersion, error) {
+func (c *CachedGalaxyClient) GetRoleVersions(roleID int, latest_only bool) ([]RoleVersion, error) {
 	var allVersions []RoleVersion
 	url := fmt.Sprintf("%s/api/v1/roles/%d/versions/", c.baseUrl, roleID)
 
@@ -140,6 +142,26 @@ func (c *CachedGalaxyClient) GetRoleVersions(roleID int) ([]RoleVersion, error) 
 
 		allVersions = append(allVersions, versionsResponse.Results...)
 		url = versionsResponse.Next
+	}
+
+	if latest_only {
+		//fmt.Printf("%s\n", allVersions)
+		vstrings := []string{}
+		for _,v := range allVersions {
+			vstrings = append(vstrings, v.Name)
+		}
+		//fmt.Printf("%s\n",vstrings)
+		highest,_ := utils.GetHighestSemver(vstrings)
+
+		trimmedVersions := []RoleVersion{}
+		for _, v := range allVersions {
+			if v.Name == highest {
+				trimmedVersions = append(trimmedVersions, v)
+			}
+		}
+		return trimmedVersions, nil
+
+		//panic("")
 	}
 
 	return allVersions, nil
@@ -396,7 +418,7 @@ type CollectionVersionDetail struct {
 }
 
 // GetRoles fetches all the roles from the server's base URL
-func (c *CachedGalaxyClient) GetCollections(namespace string, name string) ([]CollectionVersionDetail, error) {
+func (c *CachedGalaxyClient) GetCollections(namespace string, name string, latest_only bool) ([]CollectionVersionDetail, error) {
 
 	// https://galaxy.ansible.com/api/v3/plugin/ansible/search/collection-versions/?is_deprecated=false&repository_label=!hide_from_search&is_highest=true&offset=0&limit=10&order_by=name
 	// https://galaxy.ansible.com/api/v3/collectionsgeerlingguy/mac/
@@ -411,6 +433,14 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string) ([]Co
 		url = url + fmt.Sprintf("?namespace=%s", namespace)
 	} else if name != "" {
 		url = url + fmt.Sprintf("?name=%s", name)
+	}
+
+	if latest_only {
+		if strings.Contains(url, "?") {
+			url = url + "&is_highest=true"
+		} else {
+			url = url + "?is_highest=true"
+		}
 	}
 
 	collectionCount := 0;

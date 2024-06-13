@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 )
 
-func syncRoles(apiClient CachedGalaxyClient, namespace string, name string) ([]Role, error) {
+func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, latest_only bool) ([]Role, error) {
 
 	// iterate roles ...
-	roles, err := apiClient.GetRoles(namespace, name)
+	roles, err := apiClient.GetRoles(namespace, name, latest_only)
 	if err != nil {
 		log.Fatalf("Error fetching roles: %v", err)
 	}

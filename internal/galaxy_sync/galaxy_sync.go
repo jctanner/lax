@@ -7,9 +7,9 @@ import (
 	"sync"
 )
 
-func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, namespace string, name string) error {
+func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, latest_only bool, namespace string, name string) error {
 
-	fmt.Printf("syncing %s to %s collections:%s roles:%s\n", server, dest, collections_only, roles_only)
+	fmt.Printf("syncing %s to %s collections:%s roles:%s latest:%s\n", server, dest, collections_only, roles_only, latest_only)
 	
 	// need to make sure the dest exists
 	dest = utils.ExpandUser(dest)
@@ -37,7 +37,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 	}
 
 	if roles_only || !collections_only {
-		roles, err := syncRoles(apiClient, namespace, name)
+		roles, err := syncRoles(apiClient, namespace, name, latest_only)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 	}
 	
 	if collections_only || !roles_only {
-		collections, err := syncCollections(server, dest, apiClient, namespace, name)
+		collections, err := syncCollections(server, dest, apiClient, namespace, name, latest_only)
 		if err != nil {
 			return err
 		}
