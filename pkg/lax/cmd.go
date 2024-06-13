@@ -153,7 +153,7 @@ func Execute() {
 	syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
 	syncCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
 	syncCmd.Flags().StringVar(&name, "name", "", "name")
-	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 4, "concurrency")
+	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 1, "concurrency")
 	syncCmd.Flags().BoolVar(&latest_only, "latest", false, "get only the latest version")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")

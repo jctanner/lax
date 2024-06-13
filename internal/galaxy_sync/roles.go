@@ -6,7 +6,9 @@ import (
 	"lax/internal/utils"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"time"
 )
 
 func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, latest_only bool) ([]Role, error) {
@@ -118,3 +120,111 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	return "", nil
 }
 
+
+func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (string, error) {
+
+	// how can we make a sortable version from a commit?
+	// how can we make a sortable version from a branch name?
+	// how can we quickly determine if a tar already exists for the hash?
+	// how can we quickly get the latest commit on a branch?
+
+
+	// Can get a tarball of a specific commit like this ...
+	// 	https://github.com/github/codeql/archive/aef66c462abe817e33aad91d97aa782a1e2ad2c7.zip or .tar.gz
+	// Or of a specific branch like this ...
+	//	https://github.com/github/codeql/archive/refs/heads/main.tar.gz
+	// Otherwise get the specified branch ...
+
+	// short circuit if the role has a commit and there's a relevant tarball
+	globPattern := fmt.Sprintf("%s-%s-*-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, role.Commit)
+	fmt.Printf("%s\n", globPattern)
+	matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
+	fmt.Printf("%s\n", matches)
+	if len(matches) > 0 {
+		return matches[0], nil
+	}
+	//panic("")
+
+	// make a shallow clone ...
+	repoUrl := fmt.Sprintf("https://github.com/%s/%s", role.GithubUser, role.GithubRepo)
+	gitDir := path.Join(cacheDir, "git")
+	utils.MakeDirs(gitDir)
+	repoPath := path.Join(gitDir, fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo))
+	if !utils.IsDir(repoPath) {
+		err := utils.CloneRepo(repoUrl, repoPath)
+		if err != nil {
+			fmt.Printf("failed to clone %s %s\n", repoUrl, err)
+			panic("")
+		}
+	}
+
+	if role.GithubBranch != "" {
+		utils.CheckoutBranch(repoPath, role.GithubBranch)
+	}
+
+	if role.Commit == "" {
+		// get the latest commit hash
+		role.Commit,_ = utils.GetLatestCommitHash(repoPath)
+	}
+
+	rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
+	fmt.Printf("%s == %s\n", role.Commit, rawDate)
+	date, _ := time.Parse("2006-01-02 15:04:05 -0700", rawDate)
+	fmt.Printf("%s == %s\n", role.Commit, date)
+	formattedDate := date.Format("20060102150405")
+	fmt.Printf("%s == %s\n", role.Commit, formattedDate)
+
+	//panic("")
+
+	//currentTime := time.Now()
+	version := "0.0.0+" + formattedDate + "-" + role.Commit
+
+	dstFile := fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
+	dstFile = path.Join(rolesDir, dstFile)
+	if utils.IsFile(dstFile) {
+		fmt.Printf("%s exists\n", dstFile)
+		return dstFile, nil
+	}
+
+	dstFile = fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
+	dstFile = path.Join(rolesDir, dstFile)
+	tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/%s.tar.gz", role.GithubUser, role.GithubRepo, role.Commit)
+	fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+	_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		panic("")
+	}
+	return dstFile, nil
+
+	/*
+	if role.Commit != "" {
+		version = "0.0.0+" + role.Commit
+		dstFile = fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
+		dstFile = path.Join(rolesDir, dstFile)
+		tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/%s.tar.gz", role.GithubUser, role.GithubRepo, role.Commit)
+		fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+		_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			panic("")
+		}
+		return dstFile, nil
+
+	} else if role.GithubBranch != "" {
+		tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/refs/heads/%s.tar.gz", role.GithubUser, role.GithubRepo, role.GithubBranch)
+		fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+		_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			panic("")
+		}
+		return dstFile, nil
+	}
+
+	fmt.Printf("role has no commit nor branch!!!")
+	panic("")
+	*/
+
+	//return "", nil
+}

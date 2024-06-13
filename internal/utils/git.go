@@ -1,11 +1,12 @@
 package utils
 
 import (
-    "fmt"
-    "os"
-    "os/exec"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
-    "github.com/go-git/go-git/v5" // with go modules disabled
+	"github.com/go-git/go-git/v5" // with go modules disabled
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -56,97 +57,53 @@ func ListTags(path string) ([]string, error) {
     return tags, nil
 }
 
-/*
-func CheckoutTag(path, tagName string) error {
-    // Open the repository
-    repo, err := git.PlainOpen(path)
-    if err != nil {
-        return fmt.Errorf("failed to open repository: %v", err)
-    }
+func GetCommitDate(repoPath string, commitHash string) (string, error) {
+	// Create the git command
+	cmd := exec.Command("git", "-C", repoPath, "show", "-s", "--format=%ci", commitHash)
 
-    // Resolve the tag to a commit
-    ref, err := repo.Tag(tagName)
-    if err != nil {
-        return fmt.Errorf("failed to resolve tag: %v", err)
-    }
+	// Run the command and capture the output
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to execute git command: %w", err)
+	}
 
-    // Get the commit object
-    commit, err := repo.CommitObject(ref.Hash())
-    if err != nil {
-        return fmt.Errorf("failed to get commit object: %v", err)
-    }
+	// Trim any surrounding whitespace from the output
+	date := strings.TrimSpace(string(output))
+	return date, nil
+}
 
-    // Create a worktree to checkout the commit
-    worktree, err := repo.Worktree()
-    if err != nil {
-        return fmt.Errorf("failed to get worktree: %v", err)
-    }
+func GetLatestCommitHash(repoPath string) (string, error) {
+	// Create the git command
+	cmd := exec.Command("git", "-C", repoPath, "rev-parse", "HEAD")
 
-    // Checkout the commit
-    err = worktree.Checkout(&git.CheckoutOptions{
-        Hash: commit.Hash,
-    })
-    if err != nil {
-        return fmt.Errorf("failed to checkout commit: %v", err)
-    }
+	// Run the command and capture the output
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to execute git command: %w", err)
+	}
 
+	// Trim any surrounding whitespace from the output
+	commitHash := strings.TrimSpace(string(output))
+	return commitHash, nil
+}
+
+func CheckoutBranch(path, branchName string) error {
+    // Run the git checkout command as a subprocess with the working directory set to the repository path
+    cmd := exec.Command("git", "checkout", branchName)
+    cmd.Dir = path
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to checkout branch: %v", err)
+    }
     return nil
 }
-*/
 
-/*
-func CheckoutTag(path, tagName string) error {
-    // Open the repository
-    repo, err := git.PlainOpen(path)
-    if err != nil {
-        return fmt.Errorf("failed to open repository: %v", err)
-    }
-
-    // Resolve the tag to a commit
-    ref, err := repo.Tag(tagName)
-    if err != nil {
-        return fmt.Errorf("failed to resolve tag: %v", err)
-    }
-
-    // Dereference the tag if it's annotated
-    tag, err := repo.TagObject(ref.Hash())
-    if err == nil {
-        ref = tag.Target
-    }
-
-    // Get the commit object
-    commit, err := repo.CommitObject(ref.Hash())
-    if err != nil {
-        return fmt.Errorf("failed to get commit object: %v", err)
-    }
-
-    // Create a worktree to checkout the commit
-    worktree, err := repo.Worktree()
-    if err != nil {
-        return fmt.Errorf("failed to get worktree: %v", err)
-    }
-
-    // Checkout the commit
-    err = worktree.Checkout(&git.CheckoutOptions{
-        Hash: commit.Hash,
-    })
-    if err != nil {
-        return fmt.Errorf("failed to checkout commit: %v", err)
-    }
-
-    return nil
-}
-*/
 
 func CheckoutTag(path, tagName string) error {
     // Run the git checkout command as a subprocess with the working directory set to the repository path
     cmd := exec.Command("git", "checkout", tagName)
     cmd.Dir = path
-    //cmd.Stdout = os.Stdout
-    //cmd.Stderr = os.Stderr
     if err := cmd.Run(); err != nil {
         return fmt.Errorf("failed to checkout tag: %v", err)
     }
-
     return nil
 }

@@ -431,61 +431,6 @@ func RemoveFirstPathElement(path string) string {
     return path // Return the original path if there's only one part
 }
 
-
-/*
-// CreateSymlink creates a symbolic link in the same directory as the source file
-func CreateSymlink(srcFile string, linkName string) error {
-	// Get the absolute path of the source file
-	srcPath, err := filepath.Abs(srcFile)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path of source file: %w", err)
-	}
-
-	// Get the directory of the source file
-	srcDir := filepath.Dir(srcPath)
-
-	// Construct the full path for the symlink
-	linkPath := filepath.Join(srcDir, linkName)
-
-	// Create the symbolic link
-	relativeSrcPath, err := filepath.Rel(srcDir, srcPath)
-	if err != nil {
-		return fmt.Errorf("failed to get relative path: %w", err)
-	}
-
-	err = os.Symlink(relativeSrcPath, linkPath)
-	if err != nil {
-		return fmt.Errorf("failed to create symlink: %w", err)
-	}
-
-	return nil
-}
-*/
-
-/*
-func CreateSymlink(srcFile, linkName string) error {
-	// Get the absolute path of the source file
-	srcPath, err := filepath.Abs(srcFile)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path of source file: %w", err)
-	}
-
-	// Get the directory of the source file
-	srcDir := filepath.Dir(srcPath)
-
-	// Construct the full path for the symlink
-	linkPath := filepath.Join(srcDir, linkName)
-
-	// Create the symbolic link using the absolute path
-	err = os.Symlink(srcPath, linkPath)
-	if err != nil {
-		return fmt.Errorf("failed to create symlink: %w", err)
-	}
-
-	return nil
-}
-*/
-
 func CreateSymlink(srcFile string, linkName string) error {
 	// Get the absolute path of the source file
 	srcPath, err := filepath.Abs(srcFile)
@@ -509,4 +454,17 @@ func CreateSymlink(srcFile string, linkName string) error {
 	}
 
 	return nil
+}
+
+func FindMatchingFiles(directory, pattern string) ([]string, error) {
+	// Combine the directory and pattern to create a full search pattern
+	searchPattern := filepath.Join(directory, pattern)
+
+	// Use filepath.Glob to find matching files
+	matches, err := filepath.Glob(searchPattern)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search for files: %w", err)
+	}
+
+	return matches, nil
 }

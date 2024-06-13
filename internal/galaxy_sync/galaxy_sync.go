@@ -71,18 +71,25 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 				defer wg.Done()
 	
 				fmt.Printf("%d: %s\n", ix, role)
-				if len(role.SummaryFields.Versions) == 0 {
-					return
-				}
+				//if len(role.SummaryFields.Versions) == 0 {
+				//	return
+				//}
 	
-				for _, roleVersion := range role.SummaryFields.Versions {
-					sem <- struct{}{} // acquire a slot
-					go func(role Role, roleVersion RoleVersion) {
-						defer func() { <-sem }() // release the slot
-	
-						fn, _ := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-						fmt.Printf("\t\t%s\n", fn)
-					}(role, roleVersion)
+				if len(role.SummaryFields.Versions) > 0 {
+					for _, roleVersion := range role.SummaryFields.Versions {
+						sem <- struct{}{} // acquire a slot
+						go func(role Role, roleVersion RoleVersion) {
+							defer func() { <-sem }() // release the slot
+		
+							fn, _ := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+							fmt.Printf("\t\t%s\n", fn)
+						}(role, roleVersion)
+					}
+				} else {
+					//fmt.Printf("NO VERSIONS!!!\n")
+					fmt.Printf("Enumerting virtual role version ...\n")
+					fn, _ := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+					fmt.Printf("\t\t%s\n", fn)
 				}
 			}(ix, role)
 		}
