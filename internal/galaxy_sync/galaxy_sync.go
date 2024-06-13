@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 func GalaxySync(server string, dest string, download_concurrency int, collections_only bool, roles_only bool, latest_only bool, namespace string, name string) error {
@@ -180,7 +181,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 							}
 							
 							fmt.Printf("%s not found\n", vBadFile)
-							//time.Sleep(2 * time.Second)
+							time.Sleep(2 * time.Second)
 							fmt.Printf("GET %s %s\n", role, roleVersion)
 							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
 							fmt.Printf("\t\t%s\n", fn)
@@ -197,7 +198,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 						}(role, roleVersion)
 					}
 				} else {
-					//time.Sleep(2 * time.Second)
+					time.Sleep(2 * time.Second)
 					fmt.Printf("Enumerating virtual role version ...\n")
 					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 					if err != nil {
