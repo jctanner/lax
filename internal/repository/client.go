@@ -24,6 +24,7 @@ type RepoClient interface {
 	ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
 	ResolveRoleDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
 	GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) string
+	GetCacheRoleFileLocationForInstallSpec(spec utils.InstallSpec) string
 }
 
 type FileRepoClient struct {
@@ -49,6 +50,8 @@ type HttpRepoClient struct {
 }
 
 func (client *FileRepoClient) InitCache(cachePath string) error {
+	//fmt.Printf("NOT IMPLEMENTED!!!!!!!")
+	//panic("")
 	return nil
 }
 
@@ -149,6 +152,12 @@ func (client *FileRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	return fileName
 }
 
+func (client *FileRepoClient) GetCacheRoleFileLocationForInstallSpec(spec utils.InstallSpec) string {
+	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
+	fileName := filepath.Join(client.BasePath, "roles", tarName)
+	return fileName
+}
+
 func (client *FileRepoClient) ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 
 	// load the collections manifests
@@ -164,11 +173,12 @@ func (client *FileRepoClient) ResolveCollectionDeps(spec utils.InstallSpec) ([]u
 func (client *FileRepoClient) ResolveRoleDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 
 	// load the collections manifests
+	fmt.Printf("assembling full path to: %s\n", client.RoleManifests.Filename)
 	rolesManifestsFile := filepath.Join(client.BasePath, client.RoleManifests.Filename)
 	fmt.Printf("reading %s\n", rolesManifestsFile)
 	manifests, _ := ExtractRoleManifestsFromTarGz(rolesManifestsFile)
-	fmt.Printf("%s\n", manifests)
-	panic("")
+	//fmt.Printf("all-manifests: %s\n", manifests)
+	//panic("")
 	specs := []utils.InstallSpec{}
 	resolveRoleDeps(spec, &manifests, &specs)
 
@@ -253,6 +263,26 @@ func (client *HttpRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	DownloadFile(url, cFile)
 
 	return cFile
+}
+
+func (client *HttpRepoClient) GetCacheRoleFileLocationForInstallSpec(spec utils.InstallSpec) string {
+	//fmt.Printf("ERROR: GetCacheFileLocationForInstallSpec NOT YET IMPLEMENTED\n")
+	rDir := filepath.Join(client.CachePath, "roles")
+	utils.MakeDirs(rDir)
+
+	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
+	fmt.Printf("%s\n", tarName)
+	
+	rFile := filepath.Join(rDir, tarName)
+	if utils.FileExists(rFile) {
+		return rFile
+	}
+
+	// download it ...
+	url := client.BaseURL + "/roles/" + tarName
+	DownloadFile(url, rFile)
+
+	return rFile
 }
 
 func (client *HttpRepoClient) ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
@@ -456,12 +486,29 @@ func RoleSpecToManifestCandidates(spec utils.InstallSpec, manifests *[]RoleMeta)
 	// get the meta for the incoming spec
 	candidates := []RoleMeta{}
 	for _, manifest := range *manifests {
+
+		pretty,_ := utils.PrettyPrint(manifest)
+		fmt.Println(pretty)
+
+
 		if manifest.GalaxyInfo.Namespace != spec.Namespace {
-			fmt.Printf("skip %s\n", manifest)
+			fmt.Printf(
+				"skip %s %s.%s==%s\n",
+				manifest,
+				manifest.GalaxyInfo.Namespace,
+				manifest.GalaxyInfo.RoleName,
+				manifest.GalaxyInfo.Version,
+			)
 			continue
 		}
 		if manifest.GalaxyInfo.RoleName != spec.Name {
-			fmt.Printf("skip %s\n", manifest)
+			fmt.Printf(
+				"skip %s %s.%s==%s\n",
+				manifest,
+				manifest.GalaxyInfo.Namespace,
+				manifest.GalaxyInfo.RoleName,
+				manifest.GalaxyInfo.Version,
+			)
 			continue
 		}
 

@@ -71,7 +71,7 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 		Version:   version,
 	}
 
-	fmt.Printf("spec: %s\n", ispec)
+	fmt.Printf("initial spec: %s.%s==%s\n", ispec.Namespace, ispec.Name, ispec.Version)
 
 	specs, err := repoClient.ResolveRoleDeps(ispec)
 
@@ -90,11 +90,11 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 		fmt.Printf("installing: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
 
 		// get a local cache file from the repo to install ...
-		fn := repoClient.GetCacheFileLocationForInstallSpec(spec)
+		fn := repoClient.GetCacheRoleFileLocationForInstallSpec(spec)
 		fmt.Printf("\tfrom %s\n", fn)
 
 		// extract it to the right place ...
-		pkgMgr.InstalCollectionFromPath(spec.Namespace, spec.Name, spec.Version, fn)
+		pkgMgr.InstallRoleFromPath(spec.Namespace, spec.Name, spec.Version, fn)
 
 	}
 

@@ -423,6 +423,189 @@ func ExtractTarGz(tarGzPath, dest string) error {
 }
 
 
+/*
+// ExtractTarGz extracts a tar.gz file to the specified destination
+func ExtractTarGz(tarGzPath, dest string) error {
+	// Open the tar.gz file
+	file, err := os.Open(tarGzPath)
+	if err != nil {
+		return fmt.Errorf("open tar.gz file: %v", err)
+	}
+	defer file.Close()
+
+	// Create gzip reader
+	uncompressedStream, err := gzip.NewReader(file)
+	if err != nil {
+		return fmt.Errorf("create gzip reader: %v", err)
+	}
+	defer uncompressedStream.Close()
+
+	// Create tar reader
+	tarReader := tar.NewReader(uncompressedStream)
+
+	// Iterate through the files in the archive
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return fmt.Errorf("read tar header: %v", err)
+		}
+
+		// Determine the target file path
+		target := filepath.Join(dest, header.Name)
+
+		// Ensure the parent directory exists
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return fmt.Errorf("create directory: %v", err)
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			// Create directory if it does not exist
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+					return fmt.Errorf("create directory: %v", err)
+				}
+			}
+		case tar.TypeReg:
+			// Create and write to file
+			outFile, err := os.Create(target)
+			if err != nil {
+				return fmt.Errorf("create file: %v", err)
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+				return fmt.Errorf("write file: %v", err)
+			}
+			outFile.Close()
+
+			// Set file permissions
+			if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("set file permissions: %v", err)
+			}
+		case tar.TypeSymlink:
+			// Create symlink
+			if err := os.Symlink(header.Linkname, target); err != nil {
+				return fmt.Errorf("create symlink: %v", err)
+			}
+		case tar.TypeLink:
+			// Create hard link
+			if err := os.Link(header.Linkname, target); err != nil {
+				return fmt.Errorf("create hard link: %v", err)
+			}
+		default:
+			return fmt.Errorf("unsupported file type: %v", header.Typeflag)
+		}
+	}
+	return nil
+}
+*/
+
+/*
+func ExtractTarGz(tarGzPath, dest string) error {
+
+	// extract to a tempdir first ...
+	tempDir, _ := CreateTempDirectory()
+
+	// Ensure the destination directory exists
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		return fmt.Errorf("create destination directory: %v", err)
+	}
+
+	// Get the absolute path of the tar.gz file
+	absTarGzPath, err := filepath.Abs(tarGzPath)
+	if err != nil {
+		return fmt.Errorf("get absolute path of tar.gz file: %v", err)
+	}
+
+	// Change the current working directory to the destination directory
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get current working directory: %v", err)
+	}
+	defer os.Chdir(originalDir) // Ensure we return to the original directory
+
+	if err := os.Chdir(dest); err != nil {
+		return fmt.Errorf("change directory to destination: %v", err)
+	}
+
+	// Execute the tar xzvf command
+	cmd := exec.Command("tar", "xzvf", absTarGzPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("execute tar command: %v", err)
+	}
+
+	return nil
+}
+*/
+
+// ExtractTarGz extracts a tar.gz file to the specified destination
+func ExtractRoleTarGz(tarGzPath, dest string) error {
+	// Create a temporary directory
+	tempDir, err := CreateTempDirectory()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir) // Clean up the temporary directory
+
+	// Execute the tar xzvf command to extract files to the temporary directory
+	cmd := exec.Command("tar", "xzvf", tarGzPath, "-C", tempDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("execute tar command: %v", err)
+	}
+
+	/*
+	// Copy all files from the temporary directory to the destination directory
+	if err := CopyDir(tempDir, dest); err != nil {
+		return fmt.Errorf("copy files to destination: %v", err)
+	}
+	*/
+
+	fmt.Printf("%s\n", tempDir)
+
+	// find the meta dir ...
+	metaDir := ""
+	_ = filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Check if the current path is a directory
+		if info.IsDir() && info.Name() == "meta"{
+			//directories = append(directories, path)
+			metaDir = path
+			return nil
+		}
+		return nil
+	})
+	fmt.Printf("found meta dir at %s\n", metaDir)
+	srcDir := filepath.Dir(metaDir)
+	fmt.Printf("setting source dir as %s\n", srcDir)
+
+	// copy the src to the dst ...
+	cmd = exec.Command("cp", "-Ra", srcDir+"/.", dest)
+
+	// Set the command's output to the standard output and error to the standard error
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Run the command
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("execute cp command: %v", err)
+	}	
+
+	return nil
+}
+
+
 func RemoveFirstPathElement(path string) string {
     parts := strings.Split(path, string(filepath.Separator))
     if len(parts) > 1 {
@@ -467,4 +650,14 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 	}
 
 	return matches, nil
+}
+
+
+func CreateTempDirectory() (string, error) {
+	// Create a temporary directory with a specified prefix
+	tempDir, err := os.MkdirTemp("", "lax_extract_")
+	if err != nil {
+		return "", fmt.Errorf("create temporary directory: %v", err)
+	}
+	return tempDir, nil
 }

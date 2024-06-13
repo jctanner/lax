@@ -22,6 +22,11 @@ type GalaxyYamlMeta struct {
 	VersionUrl    string   `json:"version_url"`
 }
 
+type RoleInstallInfo struct {
+	InstallDate string `yaml:"install_date"`
+	Version string `yaml:"version"`
+}
+
 type PackageManager struct {
 	BasePath            string
 	CachePath           string
@@ -130,6 +135,39 @@ func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name st
 		return err
 	}
 
+	return nil
+}
+
+func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string, version string, fn string) error {
+	/*
+	# roles/geerlingguy.docker/meta/.galaxy_install_info
+	1 install_date: 'Thu 13 Jun 2024 02:23:22 PM '                                                                                                                                                                                                                                                                                                               
+  	2 version: 7.2.0
+	*/
+
+	rPath := filepath.Join(pkgmgr.BasePath, "roles")
+	rPath, _ = utils.GetAbsPath(rPath)
+	utils.MakeDirs(rPath)
+
+	// Basepath / collections / ansible_collections / namespace / name / ...
+	dirPath := filepath.Join(rPath, namespace + "." + name)
+	fmt.Printf("\t%s\n", dirPath)
+	utils.MakeDirs(dirPath)
+	fmt.Printf("extracting %s to %s\n", fn, dirPath)
+	err := utils.ExtractRoleTarGz(fn, dirPath)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		panic("")
+	}
+
+	/*
+	infoYAML := RoleInstallInfo{
+		InstallDate: "Thu 13 Jun 2024 02:23:22 PM ",
+		Version: version,
+	}
+	yamlData, err := yaml.Marshal(infoYAML)
+	*/
+	
 	return nil
 }
 
