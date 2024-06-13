@@ -103,6 +103,10 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string, latest_only
 				}
 				role.SummaryFields.Versions = versions
 				allRoles = append(allRoles, role)
+			} else if len(role.SummaryFields.Versions) > 0 && latest_only {
+				newVs,_ := reduceRoleVersionsToHighest(role.SummaryFields.Versions)
+				role.SummaryFields.Versions = newVs
+				allRoles = append(allRoles, role)
 			}
 		}
 
@@ -145,6 +149,7 @@ func (c *CachedGalaxyClient) GetRoleVersions(roleID int, latest_only bool) ([]Ro
 	}
 
 	if latest_only {
+		/*
 		//fmt.Printf("%s\n", allVersions)
 		vstrings := []string{}
 		for _,v := range allVersions {
@@ -159,6 +164,9 @@ func (c *CachedGalaxyClient) GetRoleVersions(roleID int, latest_only bool) ([]Ro
 				trimmedVersions = append(trimmedVersions, v)
 			}
 		}
+		return trimmedVersions, nil
+		*/
+		trimmedVersions, _ := reduceRoleVersionsToHighest(allVersions)
 		return trimmedVersions, nil
 
 		//panic("")
@@ -517,4 +525,22 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 	}
 
 	return allCollectionVersionDetails, nil
+}
+
+
+func reduceRoleVersionsToHighest(allVersions []RoleVersion) ([]RoleVersion, error) {
+	vstrings := []string{}
+	for _,v := range allVersions {
+		vstrings = append(vstrings, v.Name)
+	}
+	//fmt.Printf("%s\n",vstrings)
+	highest,_ := utils.GetHighestSemver(vstrings)
+
+	trimmedVersions := []RoleVersion{}
+	for _, v := range allVersions {
+		if v.Name == highest {
+			trimmedVersions = append(trimmedVersions, v)
+		}
+	}
+	return trimmedVersions, nil
 }

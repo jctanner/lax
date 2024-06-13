@@ -76,7 +76,11 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 				//}
 	
 				if len(role.SummaryFields.Versions) > 0 {
-					for _, roleVersion := range role.SummaryFields.Versions {
+					versions := role.SummaryFields.Versions
+					if latest_only {
+						versions,_ = reduceRoleVersionsToHighest(versions)
+					}
+					for _, roleVersion := range versions{
 						sem <- struct{}{} // acquire a slot
 						go func(role Role, roleVersion RoleVersion) {
 							defer func() { <-sem }() // release the slot
