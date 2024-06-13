@@ -1,4 +1,4 @@
-package collections
+package roles
 
 import (
 	"fmt"
@@ -73,7 +73,7 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 
 	fmt.Printf("spec: %s\n", ispec)
 
-	specs, err := repoClient.ResolveCollectionDeps(ispec)
+	specs, err := repoClient.ResolveRoleDeps(ispec)
 
 	if err != nil {
 		fmt.Printf("error solving dep tree %s\n", err)

@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	//"lax/internal/roles"
 	"lax/internal/collections"
+	"lax/internal/roles"
 )
 
 var server string
@@ -89,7 +89,14 @@ func Execute() {
 		Use:   "install",
 		Short: "Install",
 		Run: func(cmd *cobra.Command, args []string) {
-			//collections.Install(server, namespace, name, version, args)
+			if dest == "" {
+				dest = defaultDestDir
+			}
+			if cachedir == "" {
+				cachedir = defaultCacheDir
+			}
+			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", cachedir, dest)
+			roles.Install(dest, cachedir, server, requirements_file, namespace, name, version, args)
 		},
 	}
 
@@ -145,6 +152,7 @@ func Execute() {
 	roleInstallCmd.Flags().StringVar(&name, "name", "", "name")
 	roleInstallCmd.Flags().StringVar(&version, "version", "", "version")
 	roleInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
+	roleInstallCmd.Flags().StringVar(&dest, "dest", defaultDestDir, "where to install")
 
 	syncCmd.Flags().StringVar(&server, "server", "https://galaxy.ansible.com", "remote server")
 	syncCmd.Flags().StringVar(&dest, "dest", "", "where to store the data")

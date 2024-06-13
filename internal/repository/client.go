@@ -21,7 +21,8 @@ type RepoClient interface {
 	FetchRepoMeta(cachePath string) error
 	//GetRepoMeta(cachePath string) (RepoMeta, error)
 	GetRepoMetaDate() (string, error)
-	ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
+	ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
+	ResolveRoleDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error)
 	GetCacheFileLocationForInstallSpec(spec utils.InstallSpec) string
 }
 
@@ -32,6 +33,8 @@ type FileRepoClient struct {
 	RepoMeta            RepoMetaFile
 	CollectionManifests RepoMetaFile
 	CollectionFiles     RepoMetaFile
+	RoleManifests RepoMetaFile
+	RoleFiles     RepoMetaFile
 }
 
 type HttpRepoClient struct {
@@ -41,6 +44,8 @@ type HttpRepoClient struct {
 	RepoMeta            RepoMetaFile
 	CollectionManifests RepoMetaFile
 	CollectionFiles     RepoMetaFile
+	RoleManifests RepoMetaFile
+	RoleFiles     RepoMetaFile
 }
 
 func (client *FileRepoClient) InitCache(cachePath string) error {
@@ -57,7 +62,7 @@ func (client *FileRepoClient) FetchRepoMeta(cachePath string) error {
 	filePath := filepath.Join(client.BasePath, "repometa.json")
 
 	// Read the file
-	fileData, err := ioutil.ReadFile(filePath)
+	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
@@ -70,7 +75,8 @@ func (client *FileRepoClient) FetchRepoMeta(cachePath string) error {
 	fmt.Printf("repometa: %s\n", repoMeta)
 	client.CollectionManifests = repoMeta.CollectionManifests
 	client.CollectionFiles = repoMeta.CollectionFiles
-
+	client.RoleManifests = repoMeta.RoleManifests
+	client.RoleFiles = repoMeta.RoleFiles
 	client.RepoMeta = RepoMetaFile{
 		Filename: filePath,
 		Date:     repoMeta.Date,
@@ -83,15 +89,27 @@ func (client *FileRepoClient) FetchRepoMeta(cachePath string) error {
 	fmt.Printf("repometa: %s -> %s\n", src, dst)
 	utils.CopyFile(src, dst)
 
-	// copy the manifests
+	// copy the collection manifests
 	src = filepath.Join(client.BasePath, client.CollectionManifests.Filename)
 	dst = filepath.Join(cachePath, client.CollectionManifests.Filename)
 	fmt.Printf("manifests: %s -> %s\n", src, dst)
 	utils.CopyFile(src, dst)
 
-	// copy the files
+	// copy the collection files
 	src = filepath.Join(client.BasePath, client.CollectionFiles.Filename)
 	dst = filepath.Join(cachePath, client.CollectionFiles.Filename)
+	fmt.Printf("files: %s -> %s\n", src, dst)
+	utils.CopyFile(src, dst)
+
+	// copy the role manifests
+	src = filepath.Join(client.BasePath, client.RoleManifests.Filename)
+	dst = filepath.Join(cachePath, client.RoleManifests.Filename)
+	fmt.Printf("manifests: %s -> %s\n", src, dst)
+	utils.CopyFile(src, dst)
+
+	// copy the role files
+	src = filepath.Join(client.BasePath, client.RoleFiles.Filename)
+	dst = filepath.Join(cachePath, client.RoleFiles.Filename)
 	fmt.Printf("files: %s -> %s\n", src, dst)
 	utils.CopyFile(src, dst)
 
@@ -131,17 +149,32 @@ func (client *FileRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	return fileName
 }
 
-func (client *FileRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
+func (client *FileRepoClient) ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 
 	// load the collections manifests
 	collectionsManifestsFile := filepath.Join(client.BasePath, client.CollectionManifests.Filename)
 	fmt.Printf("reading %s\n", collectionsManifestsFile)
 	manifests, _ := ExtractCollectionManifestsFromTarGz(collectionsManifestsFile)
 	specs := []utils.InstallSpec{}
-	resolveDeps(spec, &manifests, &specs)
+	resolveCollectionDeps(spec, &manifests, &specs)
 
 	return specs, nil
 }
+
+func (client *FileRepoClient) ResolveRoleDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
+
+	// load the collections manifests
+	rolesManifestsFile := filepath.Join(client.BasePath, client.RoleManifests.Filename)
+	fmt.Printf("reading %s\n", rolesManifestsFile)
+	manifests, _ := ExtractRoleManifestsFromTarGz(rolesManifestsFile)
+	fmt.Printf("%s\n", manifests)
+	panic("")
+	specs := []utils.InstallSpec{}
+	resolveRoleDeps(spec, &manifests, &specs)
+
+	return specs, nil
+}
+
 
 func (client *HttpRepoClient) InitCache(cachePath string) error {
 	return nil
@@ -177,9 +210,11 @@ func (client *HttpRepoClient) FetchRepoMeta(cachePath string) error {
 	fmt.Printf("repometa: %s\n", repoMeta)
 	client.CollectionManifests = repoMeta.CollectionManifests
 	client.CollectionFiles = repoMeta.CollectionFiles
+	client.RoleManifests = repoMeta.RoleManifests
+	client.RoleFiles = repoMeta.RoleFiles
 
 	//filesToGet := []string{client.CollectionManifests.Filename, client.CollectionFiles.Filename}
-	filesToGet := []string{client.CollectionManifests.Filename}
+	filesToGet := []string{client.CollectionManifests.Filename, client.RoleManifests.Filename}
 	fmt.Printf("%s\n", filesToGet)
 
 	for _, fn := range filesToGet {
@@ -220,13 +255,25 @@ func (client *HttpRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	return cFile
 }
 
-func (client *HttpRepoClient) ResolveDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
+func (client *HttpRepoClient) ResolveCollectionDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
 	// load the collections manifests
 	collectionsManifestsFile := filepath.Join(client.CachePath, client.CollectionManifests.Filename)
 	fmt.Printf("reading %s\n", collectionsManifestsFile)
 	manifests, _ := ExtractCollectionManifestsFromTarGz(collectionsManifestsFile)
 	specs := []utils.InstallSpec{}
-	resolveDeps(spec, &manifests, &specs)
+	resolveCollectionDeps(spec, &manifests, &specs)
+
+	return specs, nil
+}
+
+func (client *HttpRepoClient) ResolveRoleDeps(spec utils.InstallSpec) ([]utils.InstallSpec, error) {
+
+	// load the collections manifests
+	rolesManifestsFile := filepath.Join(client.CachePath, client.RoleManifests.Filename)
+	fmt.Printf("reading %s\n", rolesManifestsFile)
+	manifests, _ := ExtractRoleManifestsFromTarGz(rolesManifestsFile)
+	specs := []utils.InstallSpec{}
+	resolveRoleDeps(spec, &manifests, &specs)
 
 	return specs, nil
 }
@@ -241,7 +288,7 @@ func GetRepoClient(repo string, cachePath string) (RepoClient, error) {
 	}
 }
 
-func resolveDeps(spec utils.InstallSpec, manifests *[]CollectionManifest, specs *[]utils.InstallSpec) {
+func resolveCollectionDeps(spec utils.InstallSpec, manifests *[]CollectionManifest, specs *[]utils.InstallSpec) {
 
 	candidates := SpecToManifestCandidates(spec, manifests)
 
@@ -286,7 +333,68 @@ func resolveDeps(spec utils.InstallSpec, manifests *[]CollectionManifest, specs 
 			Version:   d,
 		}
 		fmt.Printf("\t\t%s\n", dSpec)
-		resolveDeps(dSpec, manifests, specs)
+		resolveCollectionDeps(dSpec, manifests, specs)
+	}
+
+	// sort the specs
+	SortInstallSpecs(specs)
+
+	// check for duplicates ... ?
+	DeduplicateSpecs(specs)
+
+	//return specs
+
+}
+
+func resolveRoleDeps(spec utils.InstallSpec, manifests *[]RoleMeta, specs *[]utils.InstallSpec) {
+
+	candidates := RoleSpecToManifestCandidates(spec, manifests)
+
+	// exit early if nothing was found
+	if len(candidates) == 0 {
+		fmt.Printf("ERROR2: found no candidates for %s %s ... %d\n", spec, candidates, len(candidates))
+		return
+	}
+
+	// sort by version
+	sortedManifests, _ := SortRoleManifestsByVersion(candidates)
+
+	if len(sortedManifests) == 0 {
+		fmt.Printf("ERROR: found no candidates for %s\n", spec)
+		return
+	}
+
+	// use the latest version
+	thisManifest := sortedManifests[len(sortedManifests)-1]
+	fmt.Printf("%s.%s latest: %s\n", thisManifest.GalaxyInfo.Namespace, thisManifest.GalaxyInfo.RoleName, thisManifest.GalaxyInfo.Version)
+	thisSpec := utils.InstallSpec{
+		Namespace: thisManifest.GalaxyInfo.Namespace,
+		Name:      thisManifest.GalaxyInfo.RoleName,
+		Version:   thisManifest.GalaxyInfo.Version,
+	}
+	if specListContainsNamespaceName(specs, thisSpec) {
+		return
+	}
+	if specListContainsNamespaceNameVersion(specs, thisSpec) {
+		return
+	}
+	*specs = append(*specs, thisSpec)
+
+	// what are the 1st order deps
+	for j, d := range thisManifest.GalaxyInfo.Dependencies {
+		fmt.Printf("\tdep: %s %s\n", j, d)
+		panic("")
+		/*
+		parts := strings.Split(j, ".")
+		fmt.Printf("\t\t%s\n", parts)
+		dSpec := utils.InstallSpec{
+			Namespace: parts[0],
+			Name:      parts[1],
+			Version:   d,
+		}
+		fmt.Printf("\t\t%s\n", dSpec)
+		resolveRoleDeps(dSpec, manifests, specs)
+		*/
 	}
 
 	// sort the specs
@@ -336,6 +444,50 @@ func SpecToManifestCandidates(spec utils.InstallSpec, manifests *[]CollectionMan
 		candidates = append(candidates, manifest)
 	}
 
+	return candidates
+}
+
+func RoleSpecToManifestCandidates(spec utils.InstallSpec, manifests *[]RoleMeta) []RoleMeta {
+
+	fmt.Printf("##############################################\n")
+
+	fmt.Printf("%s\n", manifests)
+
+	// get the meta for the incoming spec
+	candidates := []RoleMeta{}
+	for _, manifest := range *manifests {
+		if manifest.GalaxyInfo.Namespace != spec.Namespace {
+			fmt.Printf("skip %s\n", manifest)
+			continue
+		}
+		if manifest.GalaxyInfo.RoleName != spec.Name {
+			fmt.Printf("skip %s\n", manifest)
+			continue
+		}
+
+		// is it a version with an operator or a range?
+		// "*" means -any-
+		if spec.Version != "" && spec.Version != "*" {
+
+			// make a comparable semver ...
+			op, v2, _ := splitVersion(spec.Version)
+			specVer, _ := semver.Make(v2)
+
+			// make a comparable semver ...
+			_, m2, _ := splitVersion(manifest.GalaxyInfo.Version)
+			mVer, _ := semver.Make(m2)
+
+			// eval the conditional and skip if false ...
+			res, _ := utils.CompareSemVersions(op, &mVer, &specVer)
+			if !res {
+				continue
+			}
+		}
+
+		candidates = append(candidates, manifest)
+	}
+
+	fmt.Printf("##############################################\n")
 	return candidates
 }
 

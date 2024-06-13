@@ -314,6 +314,56 @@ func ExtractCollectionManifestsFromTarGz(tarGzPath string) ([]CollectionManifest
 	return manifests, nil
 }
 
+func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
+	// Open the tar.gz file
+	file, err := os.Open(tarGzPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open tar.gz file: %w", err)
+	}
+	defer file.Close()
+
+	// Create a gzip reader
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzipReader.Close()
+
+	// Create a tar reader
+	tarReader := tar.NewReader(gzipReader)
+
+	var manifests []RoleMeta
+
+	// Iterate over the files in the tar archive
+	for {
+		// Get the next header
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // end of tar archive
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read tar header: %w", err)
+		}
+
+		// Read the JSON data
+		jsonData := make([]byte, header.Size)
+		if _, err := io.ReadFull(tarReader, jsonData); err != nil {
+			return nil, fmt.Errorf("failed to read JSON data: %w", err)
+		}
+
+		// Unmarshal the JSON data into a Manifest object
+		var manifest RoleMeta
+		if err := json.Unmarshal(jsonData, &manifest); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON data: %w", err)
+		}
+
+		// Append the manifest to the slice
+		manifests = append(manifests, manifest)
+	}
+
+	return manifests, nil
+}
+
 
 func createRoleMetaTarGz(manifests []RoleMeta, tarGzPath string) error {
 	// Create a buffer to write the tar archive
@@ -629,7 +679,7 @@ func processRoles(basePath string, rolesPath string) (error) {
 	}
 
 	// store all collectionManifests
-	roleMeta := []RoleMeta{}
+	rolesMeta := []RoleMeta{}
 	roleFilesCache := []RoleCachedFileInfo{}
 
 	for _, f := range roleTarBalls {
@@ -639,6 +689,7 @@ func processRoles(basePath string, rolesPath string) (error) {
 
 		rmeta, _ := GetRoleMetaFromTarball(f)
 		rmeta.GalaxyInfo.Version = version
+		rolesMeta = append(rolesMeta, rmeta)
 
 		tarFileNames, _ := utils.ListFilenamesInTarGz(f)
 		for _, tfn := range tarFileNames {
@@ -660,7 +711,7 @@ func processRoles(basePath string, rolesPath string) (error) {
 	// write manifests.tar.gz
 	roleMetaFilePath := filepath.Join(basePath, "role_manifests.tar.gz")
 	fmt.Printf("write %s\n", roleMetaFilePath)
-	createRoleMetaTarGz(roleMeta, roleMetaFilePath)
+	createRoleMetaTarGz(rolesMeta, roleMetaFilePath)
 
 	// write files.tar.gz
 	fmt.Printf("total files %d\n", len(roleFilesCache))
@@ -694,6 +745,37 @@ func SortManifestsByVersion(manifests []CollectionManifest) ([]CollectionManifes
 
 	// Extract sorted manifests
 	sortedManifests := make([]CollectionManifest, len(semverManifests))
+	for i, semverManifest := range semverManifests {
+		sortedManifests[i] = semverManifest.manifest
+	}
+
+	return sortedManifests, nil
+}
+
+func SortRoleManifestsByVersion(manifests []RoleMeta) ([]RoleMeta, error) {
+	// Define a custom type for sorting
+	type semverManifest struct {
+		version  semver.Version
+		manifest RoleMeta
+	}
+
+	// Convert manifests to semverManifests
+	var semverManifests []semverManifest
+	for _, manifest := range manifests {
+		version, err := semver.Parse(manifest.GalaxyInfo.Version)
+		if err != nil {
+			return nil, fmt.Errorf("invalid version %s: %w", manifest.GalaxyInfo.Version, err)
+		}
+		semverManifests = append(semverManifests, semverManifest{version: version, manifest: manifest})
+	}
+
+	// Sort the semverManifests by version
+	sort.Slice(semverManifests, func(i, j int) bool {
+		return semverManifests[i].version.LT(semverManifests[j].version)
+	})
+
+	// Extract sorted manifests
+	sortedManifests := make([]RoleMeta, len(semverManifests))
 	for i, semverManifest := range semverManifests {
 		sortedManifests[i] = semverManifest.manifest
 	}
