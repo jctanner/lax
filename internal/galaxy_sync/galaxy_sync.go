@@ -188,6 +188,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 							if err != nil {
 								// mark as "BAD"
 								file, _ := os.Create(vBadFile)
+								file.Write([]byte(fmt.Sprintf("%s\n", err)))
 								defer file.Close()
 							} else {
 								fmt.Printf("\t\t%s\n", fn)
@@ -201,6 +202,7 @@ func GalaxySync(server string, dest string, download_concurrency int, collection
 					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 					if err != nil {
 						file, _ := os.Create(badFile)
+						file.Write([]byte(fmt.Sprintf("%s\n", err)))
 						defer file.Close()
 						return
 					}
