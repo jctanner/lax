@@ -492,6 +492,14 @@ func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
 			Date:     isoFormattedCurrent,
 			Filename: "collection_files.tar.gz",
 		},
+		RoleManifests: RepoMetaFile{
+			Date:     isoFormattedCurrent,
+			Filename: "role_manifests.tar.gz",
+		},
+		RoleFiles: RepoMetaFile{
+			Date:     isoFormattedCurrent,
+			Filename: "role_files.tar.gz",
+		},
 	}
 
 	// Marshal the RepoMeta instance to JSON

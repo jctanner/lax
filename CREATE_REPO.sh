@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./RUN.sh createrepo --dest=../sample_repository/artifacts
+./RUN.sh createrepo --dest=../sample_repository.geerlingguy
