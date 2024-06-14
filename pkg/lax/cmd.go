@@ -119,7 +119,7 @@ func Execute() {
 			if server == "" {
 				server = "https://galaxy.ansible.com"
 			}
-			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, latest_only, namespace, name)
+			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, latest_only, namespace, name, requirements_file)
 			if err != nil {
 				fmt.Printf("ERROR: %s\n", err)
 			}
@@ -163,6 +163,7 @@ func Execute() {
 	syncCmd.Flags().StringVar(&name, "name", "", "name")
 	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 1, "concurrency")
 	syncCmd.Flags().BoolVar(&latest_only, "latest", false, "get only the latest version")
+	syncCmd.Flags().StringVarP(&requirements_file, "requirements", "r", "", "requirements file")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 

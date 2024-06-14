@@ -1,0 +1,15 @@
+---
+collections:
+  - name: ansible.posix
+  - name: community.general
+  - name: ansible.netcommon
+  - name: ansible.windows
+
+roles:
+  - name: geerlingguy.apache
+  - name: geerlingguy.docker
+  - name: geerlingguy.mysql
+  - name: geerlingguy.nginx
+  - name: geerlingguy.redis
+  - name: robertdebock.java
+  - name: robertdebock.docker
