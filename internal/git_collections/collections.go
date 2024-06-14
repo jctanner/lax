@@ -1,4 +1,4 @@
-package collections
+package git_collections
 
 type CollectionVersionDetailNamespace struct {
 	Name string `json:"name"`

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"cli/utils"
+	"github.com/jctanner/lax/internal/utils"
 )
 
 /*

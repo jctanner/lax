@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"cli/utils"
+	"github.com/jctanner/lax/internal/utils"
 )
 
 // Meta contains metadata about the collection
