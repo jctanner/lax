@@ -1,4 +1,4 @@
-module lax
+module github.com/jctanner/lax
 
 go 1.22.3
 
