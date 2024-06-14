@@ -25,10 +25,10 @@ type DownloadItem struct {
 func downloadJSONFile(item DownloadItem, wg *sync.WaitGroup, results chan<- error, sem chan struct{}) {
 
 	defer wg.Done()
-	defer func() { <-sem }() 
+	defer func() { <-sem }()
 
 	// Download the data
-    fmt.Printf("fetching %s to %s\n", item.URL, item.FilePath)
+	fmt.Printf("fetching %s to %s\n", item.URL, item.FilePath)
 
 	resp, err := http.Get(item.URL)
 	if err != nil {
@@ -76,10 +76,10 @@ func downloadJSONFile(item DownloadItem, wg *sync.WaitGroup, results chan<- erro
 func downloadBinaryFile(item DownloadItem, wg *sync.WaitGroup, results chan<- error, sem chan struct{}) {
 
 	defer wg.Done()
-	defer func() { <-sem }() 
+	defer func() { <-sem }()
 
 	// Download the data
-    fmt.Printf("fetching %s to %s\n", item.URL, item.FilePath)
+	fmt.Printf("fetching %s to %s\n", item.URL, item.FilePath)
 
 	resp, err := http.Get(item.URL)
 	if err != nil {

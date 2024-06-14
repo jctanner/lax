@@ -1,9 +1,9 @@
 package main
 
 import (
-    "lax/pkg/lax"
+	"lax/pkg/lax"
 )
 
 func main() {
-    lax.Execute()
+	lax.Execute()
 }

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-    "cli/utils"
+	"cli/utils"
 )
 
 // Meta contains metadata about the collection
@@ -22,7 +22,7 @@ type Meta struct {
 
 // CollectionResponse represents the structure of the response
 type CollectionResponse struct {
-	Meta Meta            `json:"meta"`
+	Meta Meta             `json:"meta"`
 	Data []CollectionData `json:"data"`
 }
 
@@ -109,7 +109,7 @@ func FetchVersionPage(versionURL string) error {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return err
 	}
-    return nil
+	return nil
 }
 
 // SaveJSON saves JSON data to a file
@@ -363,66 +363,66 @@ func SyncArtifacts(server, dest string) error {
 	var filteredFiles []string
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "cv_") && !strings.HasPrefix(file.Name(), "cv_detail") {
-			filteredFiles = append(filteredFiles, dest + "/" + file.Name())
+			filteredFiles = append(filteredFiles, dest+"/"+file.Name())
 		}
 	}
 
-    var versionHrefs []string
+	var versionHrefs []string
 
 	for _, filePath := range filteredFiles {
 
-        content, err := ioutil.ReadFile(filePath)
-        if err != nil {
-            fmt.Printf("Error reading file %s: %v\n", filePath, err)
-            continue
-        }
+		content, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			fmt.Printf("Error reading file %s: %v\n", filePath, err)
+			continue
+		}
 
-        var jsonData map[string]interface{}
-        if err := json.Unmarshal(content, &jsonData); err != nil {
-            fmt.Printf("Error unmarshalling JSON from file %s: %v\n", filePath, err)
-            continue
-        }
+		var jsonData map[string]interface{}
+		if err := json.Unmarshal(content, &jsonData); err != nil {
+			fmt.Printf("Error unmarshalling JSON from file %s: %v\n", filePath, err)
+			continue
+		}
 
-        data, ok := jsonData["data"].([]interface{})
-        if !ok {
-            fmt.Printf("No 'data' key found or 'data' is not a list in file %s\n", filePath)
-            continue
-        }
+		data, ok := jsonData["data"].([]interface{})
+		if !ok {
+			fmt.Printf("No 'data' key found or 'data' is not a list in file %s\n", filePath)
+			continue
+		}
 
-        for _, item := range data {
-           	itemMap, ok := item.(map[string]interface{})
-            if !ok {
-                fmt.Printf("Item is not a map in file %s\n", filePath)
-                continue
-            }
+		for _, item := range data {
+			itemMap, ok := item.(map[string]interface{})
+			if !ok {
+				fmt.Printf("Item is not a map in file %s\n", filePath)
+				continue
+			}
 
-            href, ok := itemMap["href"].(string)
-            if !ok {
-                fmt.Printf("No 'href' key found or 'href' is not a string in item in file %s\n", filePath)
-                continue
-            }
+			href, ok := itemMap["href"].(string)
+			if !ok {
+				fmt.Printf("No 'href' key found or 'href' is not a string in item in file %s\n", filePath)
+				continue
+			}
 
-            versionHrefs = append(versionHrefs, href)
-        }
-	} 
+			versionHrefs = append(versionHrefs, href)
+		}
+	}
 
-    var detailsToDownload []utils.DownloadItem
-    for _, versionHref := range versionHrefs {
+	var detailsToDownload []utils.DownloadItem
+	for _, versionHref := range versionHrefs {
 		versionFilename := "cv_detail" + strings.ReplaceAll(versionHref, "/", "_") + ".json"
-        if PageAlreadyFetched(dest, versionFilename) {
-            continue
-        }
-        url := server + versionHref
+		if PageAlreadyFetched(dest, versionFilename) {
+			continue
+		}
+		url := server + versionHref
 
-        di := utils.DownloadItem{
-            URL: url,
-            FilePath: dest + "/" + versionFilename,
-        }
-        detailsToDownload = append(detailsToDownload, di)
-    }
-    
-    fmt.Printf("total detail pages to fetch: %d\n", len(detailsToDownload))
-    utils.DownloadJSONFilesConcurrently(detailsToDownload, 10)
+		di := utils.DownloadItem{
+			URL:      url,
+			FilePath: dest + "/" + versionFilename,
+		}
+		detailsToDownload = append(detailsToDownload, di)
+	}
+
+	fmt.Printf("total detail pages to fetch: %d\n", len(detailsToDownload))
+	utils.DownloadJSONFilesConcurrently(detailsToDownload, 10)
 
 	detailFiles, err := ioutil.ReadDir(dest)
 	if err != nil {
@@ -432,47 +432,47 @@ func SyncArtifacts(server, dest string) error {
 	var filteredDetailsFiles []string
 	for _, file := range detailFiles {
 		if strings.HasPrefix(file.Name(), "cv_detail") {
-			filteredDetailsFiles = append(filteredDetailsFiles, dest + "/" + file.Name())
+			filteredDetailsFiles = append(filteredDetailsFiles, dest+"/"+file.Name())
 		}
 	}
 
-    var tarsToDownload []utils.DownloadItem
-    for _, file := range filteredDetailsFiles {
+	var tarsToDownload []utils.DownloadItem
+	for _, file := range filteredDetailsFiles {
 		//fmt.Printf("check %s\n", file)
 		// Read the JSON file
 		jsonFile, err := os.Open(file)
 		if err != nil {
 			//log.Fatalf("Failed to open file %s: %v\n", file, err)
-            fmt.Printf("error %s\n", err)
+			fmt.Printf("error %s\n", err)
 		}
 		defer jsonFile.Close()
 
 		byteValue, err := ioutil.ReadAll(jsonFile)
 		if err != nil {
 			//log.Fatalf("Failed to read file %s: %v\n", file, err)
-            fmt.Printf("error %s\n", err)
+			fmt.Printf("error %s\n", err)
 		}
 
 		// Unmarshal the JSON into the CollectionVersionDetail struct
 		var detail CollectionVersionDetail
 		if err := json.Unmarshal(byteValue, &detail); err != nil {
 			//log.Fatalf("Failed to unmarshal JSON: %v\n", err)
-            fmt.Printf("error %s\n", err)
+			fmt.Printf("error %s\n", err)
 		}
 
-        fmt.Printf("%s\n", detail)
+		fmt.Printf("%s\n", detail)
 
-        tarball := dest + "/" + detail.Artifact.FileName
-        if !utils.FileExists(tarball) {
-            di := utils.DownloadItem{
-                URL: detail.DownloadUrl,
-                FilePath: tarball,
-            }
-            tarsToDownload = append(tarsToDownload, di)
-        }
-    }
+		tarball := dest + "/" + detail.Artifact.FileName
+		if !utils.FileExists(tarball) {
+			di := utils.DownloadItem{
+				URL:      detail.DownloadUrl,
+				FilePath: tarball,
+			}
+			tarsToDownload = append(tarsToDownload, di)
+		}
+	}
 
-    utils.DownloadBinaryFilesConcurrently(tarsToDownload, 5)
+	utils.DownloadBinaryFilesConcurrently(tarsToDownload, 5)
 
-    return nil
+	return nil
 }

@@ -213,18 +213,18 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 		server = "https://github.com"
 	}
 
-    if requirements_file != "" {
-        if utils.IsURL(requirements_file) {
-            fp, err := utils.DownloadFile(requirements_file)
-            if err != nil {
-                fmt.Printf("ERROR %s\n", err)
-            }
-            fmt.Printf("tmp file %s\n", fp)
-            req, err := ParseRequirementsYAMLFile(fp)
-            if err != nil {
-                fmt.Printf("ERROR %s\n", err)
-            }
-            //fmt.Printf("ds: %s\n", req)
+	if requirements_file != "" {
+		if utils.IsURL(requirements_file) {
+			fp, err := utils.DownloadFile(requirements_file)
+			if err != nil {
+				fmt.Printf("ERROR %s\n", err)
+			}
+			fmt.Printf("tmp file %s\n", fp)
+			req, err := ParseRequirementsYAMLFile(fp)
+			if err != nil {
+				fmt.Printf("ERROR %s\n", err)
+			}
+			//fmt.Printf("ds: %s\n", req)
 
 			// Iterate through the collections and print the details
 			collections := req["collections"].([]interface{})
@@ -236,7 +236,7 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 
 				fmt.Printf("Collection:\n  Name: %s\n  Source: %s\n  Version: %s\n", name, source, version)
 
-            	spec := SplitSpec(name)
+				spec := SplitSpec(name)
 				namespace = spec[0]
 				name = spec[1]
 				fmt.Printf("\tnamespace: %s\n", namespace)
@@ -254,41 +254,41 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 
 			}
 
-        } else {
-        }
-    } else {
-	    fmt.Printf("collection install ... s:%s ns:%s n:%s v:%s args:%s\n", server, namespace, name, version, args)
+		} else {
+		}
+	} else {
+		fmt.Printf("collection install ... s:%s ns:%s n:%s v:%s args:%s\n", server, namespace, name, version, args)
 
-        // parse namespace.name from args ...
-        // geerlingguy.mac
-        // github.com:geerlingguy.mac
-        if len(args) > 0 {
-            fqn := args[0]
-            spec := SplitSpec(fqn)
-            //fmt.Printf("spec split .. %s\n", spec)
+		// parse namespace.name from args ...
+		// geerlingguy.mac
+		// github.com:geerlingguy.mac
+		if len(args) > 0 {
+			fqn := args[0]
+			spec := SplitSpec(fqn)
+			//fmt.Printf("spec split .. %s\n", spec)
 
-            if len(spec) == 3 {
-                server = spec[0]
-                namespace = spec[1]
-                name = spec[2]
-            } else if len(spec) == 2 {
-                namespace = spec[0]
-                name = spec[1]
-            }
+			if len(spec) == 3 {
+				server = spec[0]
+				namespace = spec[1]
+				name = spec[2]
+			} else if len(spec) == 2 {
+				namespace = spec[0]
+				name = spec[1]
+			}
 
-        }
+		}
 
-        ispec := InstallSpec{
-            Server:    server,
-            Namespace: namespace,
-            Name:      name,
-            Version:   version,
-        }
+		ispec := InstallSpec{
+			Server:    server,
+			Namespace: namespace,
+			Name:      name,
+			Version:   version,
+		}
 
-        fmt.Printf("spec %s\n", ispec)
-        DoSpecInstall(dest, server, ispec, true)
+		fmt.Printf("spec %s\n", ispec)
+		DoSpecInstall(dest, server, ispec, true)
 
-    }
+	}
 
 	return nil
 }

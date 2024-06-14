@@ -62,6 +62,7 @@ func FixGalaxyIndentation(yamlData string) (string, error) {
 /*
 Some descriptions might contain brackets which blows up the yaml parser
 if not properly quoted. For example:
+
 	[DRAFT] DISA STIG for Red Hat Virtualization Host (RHVH)
 */
 func AddQuotesToDescription(yamlData string) string {

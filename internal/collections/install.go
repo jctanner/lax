@@ -74,7 +74,6 @@ func Install(dest string, cachedir string, server string, requirements_file stri
 	fmt.Printf("spec: %s\n", ispec)
 
 	specs, err := repoClient.ResolveCollectionDeps(ispec)
-	
 
 	if err != nil {
 		fmt.Printf("error solving dep tree %s\n", err)

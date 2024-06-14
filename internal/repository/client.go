@@ -34,8 +34,8 @@ type FileRepoClient struct {
 	RepoMeta            RepoMetaFile
 	CollectionManifests RepoMetaFile
 	CollectionFiles     RepoMetaFile
-	RoleManifests RepoMetaFile
-	RoleFiles     RepoMetaFile
+	RoleManifests       RepoMetaFile
+	RoleFiles           RepoMetaFile
 }
 
 type HttpRepoClient struct {
@@ -45,8 +45,8 @@ type HttpRepoClient struct {
 	RepoMeta            RepoMetaFile
 	CollectionManifests RepoMetaFile
 	CollectionFiles     RepoMetaFile
-	RoleManifests RepoMetaFile
-	RoleFiles     RepoMetaFile
+	RoleManifests       RepoMetaFile
+	RoleFiles           RepoMetaFile
 }
 
 func (client *FileRepoClient) InitCache(cachePath string) error {
@@ -185,7 +185,6 @@ func (client *FileRepoClient) ResolveRoleDeps(spec utils.InstallSpec) ([]utils.I
 	return specs, nil
 }
 
-
 func (client *HttpRepoClient) InitCache(cachePath string) error {
 	return nil
 }
@@ -272,7 +271,7 @@ func (client *HttpRepoClient) GetCacheRoleFileLocationForInstallSpec(spec utils.
 
 	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
 	fmt.Printf("%s\n", tarName)
-	
+
 	rFile := filepath.Join(rDir, tarName)
 	if utils.FileExists(rFile) {
 		return rFile
@@ -415,15 +414,15 @@ func resolveRoleDeps(spec utils.InstallSpec, manifests *[]RoleMeta, specs *[]uti
 		fmt.Printf("\tdep: %s %s\n", j, d)
 		panic("")
 		/*
-		parts := strings.Split(j, ".")
-		fmt.Printf("\t\t%s\n", parts)
-		dSpec := utils.InstallSpec{
-			Namespace: parts[0],
-			Name:      parts[1],
-			Version:   d,
-		}
-		fmt.Printf("\t\t%s\n", dSpec)
-		resolveRoleDeps(dSpec, manifests, specs)
+			parts := strings.Split(j, ".")
+			fmt.Printf("\t\t%s\n", parts)
+			dSpec := utils.InstallSpec{
+				Namespace: parts[0],
+				Name:      parts[1],
+				Version:   d,
+			}
+			fmt.Printf("\t\t%s\n", dSpec)
+			resolveRoleDeps(dSpec, manifests, specs)
 		*/
 	}
 
@@ -487,9 +486,8 @@ func RoleSpecToManifestCandidates(spec utils.InstallSpec, manifests *[]RoleMeta)
 	candidates := []RoleMeta{}
 	for _, manifest := range *manifests {
 
-		pretty,_ := utils.PrettyPrint(manifest)
+		pretty, _ := utils.PrettyPrint(manifest)
 		fmt.Println(pretty)
-
 
 		if manifest.GalaxyInfo.Namespace != spec.Namespace {
 			fmt.Printf(

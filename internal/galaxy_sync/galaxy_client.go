@@ -12,50 +12,49 @@ import (
 )
 
 type CachedGalaxyClient struct {
-	baseUrl string
+	baseUrl   string
 	cachePath string
 }
 
-
 // Role represents a single role in the response
 type Role struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	GithubUser string `json:"github_user"`
-	GithubRepo string `json:"github_repo"`
-	GithubBranch string `json:"github_branch"`
-	Commit string `json:"commit"`
+	ID            int               `json:"id"`
+	Name          string            `json:"name"`
+	GithubUser    string            `json:"github_user"`
+	GithubRepo    string            `json:"github_repo"`
+	GithubBranch  string            `json:"github_branch"`
+	Commit        string            `json:"commit"`
 	SummaryFields RoleSummaryFields `json:"summary_fields"`
 }
 
 type RoleSummaryFields struct {
-	Namespace RoleNamespace `json:"namespace"`
-	Dependencies RoleDependencies  `json:"dependencies"`
-	Versions []RoleVersion `json:"versions"`
+	Namespace    RoleNamespace    `json:"namespace"`
+	Dependencies RoleDependencies `json:"dependencies"`
+	Versions     []RoleVersion    `json:"versions"`
 }
 
 type RoleNamespace struct {
-	Name      string `json:"name"`
+	Name string `json:"name"`
 }
 
 // RolesResponse represents the API response structure
 type RolesResponse struct {
-	Results []Role `json:"results"`
-	Next string `json:"next"`
+	Results  []Role `json:"results"`
+	Next     string `json:"next"`
 	Previous string `json:"previous"`
-	Count int `json:"count"`
+	Count    int    `json:"count"`
 }
 
 // VersionsResponse represents the API response structure for versions
 type RoleVersionsResponse struct {
 	Results []RoleVersion `json:"results"`
-	Next    string `json:"next"`
+	Next    string        `json:"next"`
 }
 
 type RoleDependencies []string
 type RoleVersion struct {
 	//Id int `json:"id"`
-	Name string `json:"name"`
+	Name        string `json:"name"`
 	ReleaseDate string `json:"release_date"`
 }
 
@@ -72,8 +71,8 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string, latest_only
 		url = url + fmt.Sprintf("&name=%s", name)
 	}
 
-	roleCount := 0;
-	rolesFetched := 0;
+	roleCount := 0
+	rolesFetched := 0
 
 	for url != "" {
 		pct := Percentage(roleCount, rolesFetched)
@@ -104,7 +103,7 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string, latest_only
 				role.SummaryFields.Versions = versions
 				allRoles = append(allRoles, role)
 			} else if len(role.SummaryFields.Versions) > 0 && latest_only {
-				newVs,_ := reduceRoleVersionsToHighest(role.SummaryFields.Versions)
+				newVs, _ := reduceRoleVersionsToHighest(role.SummaryFields.Versions)
 				role.SummaryFields.Versions = newVs
 				allRoles = append(allRoles, role)
 			}
@@ -119,7 +118,6 @@ func (c *CachedGalaxyClient) GetRoles(namespace string, name string, latest_only
 
 	return allRoles, nil
 }
-
 
 // GetVersions fetches all versions for a given role ID, handling pagination and caching
 func (c *CachedGalaxyClient) GetRoleVersions(roleID int, latest_only bool) ([]RoleVersion, error) {
@@ -150,21 +148,21 @@ func (c *CachedGalaxyClient) GetRoleVersions(roleID int, latest_only bool) ([]Ro
 
 	if latest_only {
 		/*
-		//fmt.Printf("%s\n", allVersions)
-		vstrings := []string{}
-		for _,v := range allVersions {
-			vstrings = append(vstrings, v.Name)
-		}
-		//fmt.Printf("%s\n",vstrings)
-		highest,_ := utils.GetHighestSemver(vstrings)
-
-		trimmedVersions := []RoleVersion{}
-		for _, v := range allVersions {
-			if v.Name == highest {
-				trimmedVersions = append(trimmedVersions, v)
+			//fmt.Printf("%s\n", allVersions)
+			vstrings := []string{}
+			for _,v := range allVersions {
+				vstrings = append(vstrings, v.Name)
 			}
-		}
-		return trimmedVersions, nil
+			//fmt.Printf("%s\n",vstrings)
+			highest,_ := utils.GetHighestSemver(vstrings)
+
+			trimmedVersions := []RoleVersion{}
+			for _, v := range allVersions {
+				if v.Name == highest {
+					trimmedVersions = append(trimmedVersions, v)
+				}
+			}
+			return trimmedVersions, nil
 		*/
 		trimmedVersions, _ := reduceRoleVersionsToHighest(allVersions)
 		return trimmedVersions, nil
@@ -318,8 +316,6 @@ func (c *CachedGalaxyClient) fetchCollectionsFromServer(url, cacheFile string, r
 	return os.WriteFile(cacheFile, body, 0644)
 }
 
-
-
 func (c *CachedGalaxyClient) fetchVersionsFromServer(url, cacheFile string, response *RoleVersionsResponse) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -352,8 +348,7 @@ func hash(s string) uint32 {
 	return h
 }
 
-
-func Percentage(a, b int) (int) {
+func Percentage(a, b int) int {
 	if b == 0 {
 		return 0
 	}
@@ -363,15 +358,13 @@ func Percentage(a, b int) (int) {
 	return int((float64(b) / float64(a)) * 100)
 }
 
-
-
 type Collection struct {
-	Href string `json:"href"`
-	Namespace string `json:"namespace"`
-	Name string `json:"name"`
-	Deprecated bool `json:"deprecated"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Href       string `json:"href"`
+	Namespace  string `json:"namespace"`
+	Name       string `json:"name"`
+	Deprecated bool   `json:"deprecated"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
 }
 
 type CollectionResponse struct {
@@ -379,10 +372,10 @@ type CollectionResponse struct {
 		Count int `json:"count"`
 	} `json:"meta"`
 	Links struct {
-		First string `json:"first"`
+		First    string `json:"first"`
 		Previous string `json:"previous"`
-		Next string `json:"next"`
-		Last string `json:"last"`
+		Next     string `json:"next"`
+		Last     string `json:"last"`
 	} `json:"links"`
 	Data []CrossRepoCollectionIndex `json:"data"`
 }
@@ -392,13 +385,13 @@ type CrossRepoCollectionIndex struct {
 		Name string `json:"name"`
 	} `json:"repository"`
 	CollectionVersion struct {
-		PulpHref string `json:"pulp_href"`
+		PulpHref    string `json:"pulp_href"`
 		PulpCreated string `json:"pulp_created"`
-		Namespace string `json:"namespace"`
-		Name string `json:"name"`
-		Version string `json:"version"`
+		Namespace   string `json:"namespace"`
+		Name        string `json:"name"`
+		Version     string `json:"version"`
 		Description string `json:"description"`
-		Tags []struct {
+		Tags        []struct {
 			Name string `json:"name"`
 		} `json:"tags"`
 		IsHighest bool `json:"is_highest"`
@@ -409,19 +402,19 @@ type CollectionVersionDetail struct {
 	Namespace struct {
 		Name string `json:"name"`
 	} `json:"namespace"`
-	Name string `json:"name"`
-	Version string `json:"version"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 	DownloadUrl string `json:"download_url"`
-	MetaData struct {
-		Description string `json:"description"`
-		Tags []string `json:"tags"`
+	MetaData    struct {
+		Description string   `json:"description"`
+		Tags        []string `json:"tags"`
 	} `json:"metadata"`
 	Artifact struct {
 		FileName string `json:"filename"`
-		Sha256 string `json:"sha256"`
-		Size int `json:"size"`
+		Sha256   string `json:"sha256"`
+		Size     int    `json:"size"`
 	} `json:"artifact"`
 }
 
@@ -451,8 +444,8 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 		}
 	}
 
-	collectionCount := 0;
-	collectionsFetched := 0;
+	collectionCount := 0
+	collectionsFetched := 0
 
 	for url != "" {
 		pct := Percentage(collectionCount, collectionsFetched)
@@ -473,7 +466,6 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 			}
 		}
 
-
 		for _, col := range collectionsResponse.Data {
 			fmt.Printf("col: %s\n", col)
 			// need to get the details page to find the download url ...
@@ -482,7 +474,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 				"%s/api/v3/plugin/ansible/content/published/collections/index/%s/%s/versions/%s/",
 				c.baseUrl,
 				col.CollectionVersion.Namespace,
-				col.CollectionVersion.Name, 
+				col.CollectionVersion.Name,
 				col.CollectionVersion.Version,
 			)
 			fmt.Printf("%s\n", detailsUrl)
@@ -510,11 +502,10 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 			allCollectionVersionDetails = append(allCollectionVersionDetails, details)
 		}
 
-
 		/*
-		collectionCount = collectionsResponse.Count
-		allCollections = append(allCollections, collectionsResponse.Data...)
-		collectionsFetched = len(allCollections)
+			collectionCount = collectionsResponse.Count
+			allCollections = append(allCollections, collectionsResponse.Data...)
+			collectionsFetched = len(allCollections)
 		*/
 		if collectionsResponse.Links.Next != "" {
 			url = c.baseUrl + collectionsResponse.Links.Next
@@ -527,14 +518,13 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 	return allCollectionVersionDetails, nil
 }
 
-
 func reduceRoleVersionsToHighest(allVersions []RoleVersion) ([]RoleVersion, error) {
 	vstrings := []string{}
-	for _,v := range allVersions {
+	for _, v := range allVersions {
 		vstrings = append(vstrings, v.Name)
 	}
 	//fmt.Printf("%s\n",vstrings)
-	highest,_ := utils.GetHighestSemver(vstrings)
+	highest, _ := utils.GetHighestSemver(vstrings)
 
 	trimmedVersions := []RoleVersion{}
 	for _, v := range allVersions {

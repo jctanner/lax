@@ -28,15 +28,14 @@ type RepoMeta struct {
 	Date                string       `json:"date"`
 	CollectionManifests RepoMetaFile `json:"collection_manifests"`
 	CollectionFiles     RepoMetaFile `json:"collection_files"`
-	RoleManifests RepoMetaFile `json:"role_manifests"`
-	RoleFiles     RepoMetaFile `json:"role_files"`
+	RoleManifests       RepoMetaFile `json:"role_manifests"`
+	RoleFiles           RepoMetaFile `json:"role_files"`
 }
 
 type RepoMetaFile struct {
 	Date     string `json:"date"`
 	Filename string `json:"filename"`
 }
-
 
 /***************************************************************
 COLLECTIONS
@@ -78,105 +77,105 @@ ROLES
 ***************************************************************/
 
 type RoleCachedFileInfo struct {
-	Namespace      string `json:"namespace"`
-	Name           string `json:"name"`
-	Version        string `json:"version"`
-	FileName           string `json:"filename"`
-	FileType          string `json:"filetype"`
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	FileName  string `json:"filename"`
+	FileType  string `json:"filetype"`
 	//CheckSumType   string `json:"chksum_type"`
 	//CheckSumSHA256 string `json:"chksum_sha256"`
 }
 
 type RoleMeta struct {
-	GalaxyInfo GalaxyInfo  `yaml:"galaxy_info"`
+	GalaxyInfo GalaxyInfo `yaml:"galaxy_info"`
 }
 
 type GalaxyInfo struct {
-	Author string `yaml:"author"`
+	Author    string `yaml:"author"`
 	Namespace string `yaml:"namespace"`
-	RoleName string `yaml:"role_name"`
+	RoleName  string `yaml:"role_name"`
 
 	// this doesn't actually exist
 	// but we want to have a settable
 	// property for the index files
 	Version string `yaml:"version"`
-	
-	Description string `yaml:"description"`
-	License RoleLicense `yaml:"license"`
-	MinAnsibleVersion string `json:"min_ansible_version"`
-	Platforms        []RolePlatform `yaml:"platforms"`
-	GalaxyTags       []string   `yaml:"galaxy_tags"`
-	Dependencies []RoleDependency `yaml:"dependencies"`
+
+	Description       string           `yaml:"description"`
+	License           RoleLicense      `yaml:"license"`
+	MinAnsibleVersion string           `json:"min_ansible_version"`
+	Platforms         []RolePlatform   `yaml:"platforms"`
+	GalaxyTags        []string         `yaml:"galaxy_tags"`
+	Dependencies      []RoleDependency `yaml:"dependencies"`
 }
 
 type RolePlatform struct {
-    Name     string   `yaml:"name"`
-    Versions []string `yaml:"versions"`
+	Name     string   `yaml:"name"`
+	Versions []string `yaml:"versions"`
 }
 
 type RolePlatformVersions []string
 
 func (rp *RolePlatform) UnmarshalYAML(unmarshal func(interface{}) error) error {
-    var temp struct {
-        Name     string      `yaml:"name"`
-        Versions interface{} `yaml:"versions"`
-    }
+	var temp struct {
+		Name     string      `yaml:"name"`
+		Versions interface{} `yaml:"versions"`
+	}
 
-    if err := unmarshal(&temp); err != nil {
-        return err
-    }
+	if err := unmarshal(&temp); err != nil {
+		return err
+	}
 
-    rp.Name = temp.Name
+	rp.Name = temp.Name
 
-    switch v := temp.Versions.(type) {
-    case string:
-        rp.Versions = RolePlatformVersions{v}
-    case int:
-        rp.Versions = RolePlatformVersions{strconv.Itoa(v)}
+	switch v := temp.Versions.(type) {
+	case string:
+		rp.Versions = RolePlatformVersions{v}
+	case int:
+		rp.Versions = RolePlatformVersions{strconv.Itoa(v)}
 	case float64:
 		vstring := strconv.FormatFloat(v, 'f', -1, 64)
 		rp.Versions = RolePlatformVersions{vstring}
 	case nil:
 		rp.Versions = RolePlatformVersions{}
-    case []interface{}:
-        var versions RolePlatformVersions
-        for _, version := range v {
-            switch v := version.(type) {
-            case string:
-                versions = append(versions, v)
-            case int:
-                versions = append(versions, strconv.Itoa(v))
+	case []interface{}:
+		var versions RolePlatformVersions
+		for _, version := range v {
+			switch v := version.(type) {
+			case string:
+				versions = append(versions, v)
+			case int:
+				versions = append(versions, strconv.Itoa(v))
 			case float64:
 				vstring := strconv.FormatFloat(v, 'f', -1, 64)
 				rp.Versions = append(versions, vstring)
-            default:
-                return fmt.Errorf("unexpected type for platform-version: %T", version)
-            }
-        }
-        rp.Versions = versions
-    default:
-        return fmt.Errorf("unexpected type for platform-versions: %T", temp.Versions)
-    }
+			default:
+				return fmt.Errorf("unexpected type for platform-version: %T", version)
+			}
+		}
+		rp.Versions = versions
+	default:
+		return fmt.Errorf("unexpected type for platform-versions: %T", temp.Versions)
+	}
 
-    return nil
+	return nil
 }
 
 type RoleLicense []string
 
 func (l *RoleLicense) UnmarshalYAML(unmarshal func(interface{}) error) error {
-    var singleLicense string
-    if err := unmarshal(&singleLicense); err == nil {
-        *l = RoleLicense{singleLicense}
-        return nil
-    }
+	var singleLicense string
+	if err := unmarshal(&singleLicense); err == nil {
+		*l = RoleLicense{singleLicense}
+		return nil
+	}
 
-    var licenseList []string
-    if err := unmarshal(&licenseList); err == nil {
-        *l = RoleLicense(licenseList)
-        return nil
-    }
+	var licenseList []string
+	if err := unmarshal(&licenseList); err == nil {
+		*l = RoleLicense(licenseList)
+		return nil
+	}
 
-    return fmt.Errorf("failed to unmarshal License")
+	return fmt.Errorf("failed to unmarshal License")
 }
 
 // Dependency can be either a string or a map
@@ -202,7 +201,6 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 
 	return fmt.Errorf("failed to unmarshal Dependency")
 }
-
 
 func createCollectionManifestsTarGz(manifests []CollectionManifest, tarGzPath string) error {
 	// Create a buffer to write the tar archive
@@ -360,7 +358,6 @@ func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
 
 	return manifests, nil
 }
-
 
 func createRoleMetaTarGz(manifests []RoleMeta, tarGzPath string) error {
 	// Create a buffer to write the tar archive
@@ -569,8 +566,7 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 	})
 }
 
-
-func GetRoleMetaFromTarball(f string) (RoleMeta, error){
+func GetRoleMetaFromTarball(f string) (RoleMeta, error) {
 
 	var meta RoleMeta
 
@@ -611,7 +607,7 @@ func GetRoleMetaFromTarball(f string) (RoleMeta, error){
 			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
 			lines := strings.Split(newstring, "\n")
 			for ix, line := range lines {
-				fmt.Printf("%d:%s\n", ix + 1, line)
+				fmt.Printf("%d:%s\n", ix+1, line)
 			}
 			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
 			//return meta2, err
@@ -626,7 +622,7 @@ func GetRoleMetaFromTarball(f string) (RoleMeta, error){
 		rawstring := string(fmap[metaFile])
 		lines := strings.Split(rawstring, "\n")
 		for ix, line := range lines {
-			fmt.Printf("%d:%s\n", ix + 1, line)
+			fmt.Printf("%d:%s\n", ix+1, line)
 		}
 		fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
 		os.Remove(f)

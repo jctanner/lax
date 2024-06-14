@@ -189,13 +189,6 @@ func GalaxySync(
 			}
 		}
 
-		/*
-			collections, err := syncCollections(server, dest, apiClient, namespace, name, latest_only)
-			if err != nil {
-				return err
-			}
-		*/
-
 		fmt.Printf("%d total collection versions\n", len(collections))
 
 		maxConcurrent := download_concurrency

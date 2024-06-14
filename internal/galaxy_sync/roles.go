@@ -31,7 +31,6 @@ func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, late
 	return roles, nil
 }
 
-
 func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (string, error) {
 	// is there a release tarball ... ?
 	// https://github.com/0ccupi3R/ansible-kibana/archive/refs/tags/7.6.1.tar.gz
@@ -70,17 +69,17 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	}
 
 	/*
-	if meta.GalaxyInfo.Namespace != "" && meta.GalaxyInfo.Namespace != role.GithubUser {
-		fmt.Printf("role meta namespace DOES NOT MATCH github_user!!!\n")
-		fmt.Printf("\t '%s' != '%s' \n", meta.GalaxyInfo.Namespace, role.GithubUser)
-		panic("")
-	}
+		if meta.GalaxyInfo.Namespace != "" && meta.GalaxyInfo.Namespace != role.GithubUser {
+			fmt.Printf("role meta namespace DOES NOT MATCH github_user!!!\n")
+			fmt.Printf("\t '%s' != '%s' \n", meta.GalaxyInfo.Namespace, role.GithubUser)
+			panic("")
+		}
 
-	if meta.GalaxyInfo.RoleName != role.Name {
-		fmt.Printf("role meta.name DOES NOT MATCH role.name!!!\n")
-		fmt.Printf("\t'%s' != '%s' \n", meta.GalaxyInfo.RoleName, role.Name)
-		panic("")
-	}
+		if meta.GalaxyInfo.RoleName != role.Name {
+			fmt.Printf("role meta.name DOES NOT MATCH role.name!!!\n")
+			fmt.Printf("\t'%s' != '%s' \n", meta.GalaxyInfo.RoleName, role.Name)
+			panic("")
+		}
 	*/
 
 	if meta.GalaxyInfo.Namespace != "" && meta.GalaxyInfo.Namespace != role.SummaryFields.Namespace.Name {
@@ -123,14 +122,12 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	return "", nil
 }
 
-
 func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (string, error) {
 
 	// how can we make a sortable version from a commit?
 	// how can we make a sortable version from a branch name?
 	// how can we quickly determine if a tar already exists for the hash?
 	// how can we quickly get the latest commit on a branch?
-
 
 	// Can get a tarball of a specific commit like this ...
 	// 	https://github.com/github/codeql/archive/aef66c462abe817e33aad91d97aa782a1e2ad2c7.zip or .tar.gz
@@ -169,7 +166,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 
 	if role.Commit == "" {
 		// get the latest commit hash
-		role.Commit,_ = utils.GetLatestCommitHash(repoPath)
+		role.Commit, _ = utils.GetLatestCommitHash(repoPath)
 	}
 
 	rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
@@ -204,32 +201,32 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	return dstFile, nil
 
 	/*
-	if role.Commit != "" {
-		version = "0.0.0+" + role.Commit
-		dstFile = fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
-		dstFile = path.Join(rolesDir, dstFile)
-		tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/%s.tar.gz", role.GithubUser, role.GithubRepo, role.Commit)
-		fmt.Printf("%s -> %s\n", tarUrl, dstFile)
-		_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			panic("")
-		}
-		return dstFile, nil
+		if role.Commit != "" {
+			version = "0.0.0+" + role.Commit
+			dstFile = fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
+			dstFile = path.Join(rolesDir, dstFile)
+			tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/%s.tar.gz", role.GithubUser, role.GithubRepo, role.Commit)
+			fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+			_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
+			if err != nil {
+				fmt.Printf("%s\n", err)
+				panic("")
+			}
+			return dstFile, nil
 
-	} else if role.GithubBranch != "" {
-		tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/refs/heads/%s.tar.gz", role.GithubUser, role.GithubRepo, role.GithubBranch)
-		fmt.Printf("%s -> %s\n", tarUrl, dstFile)
-		_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			panic("")
+		} else if role.GithubBranch != "" {
+			tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/refs/heads/%s.tar.gz", role.GithubUser, role.GithubRepo, role.GithubBranch)
+			fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+			_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
+			if err != nil {
+				fmt.Printf("%s\n", err)
+				panic("")
+			}
+			return dstFile, nil
 		}
-		return dstFile, nil
-	}
 
-	fmt.Printf("role has no commit nor branch!!!")
-	panic("")
+		fmt.Printf("role has no commit nor branch!!!")
+		panic("")
 	*/
 
 	//return "", nil

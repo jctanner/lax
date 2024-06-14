@@ -141,45 +141,44 @@ func MakeDirs(path string) error {
 	return nil
 }
 
-
 func EndsWithMetaMainYAML(filename string) bool {
-    return strings.HasSuffix(filename, "meta/main.yml") || strings.HasSuffix(filename, "meta/main.yaml")
+	return strings.HasSuffix(filename, "meta/main.yml") || strings.HasSuffix(filename, "meta/main.yaml")
 }
 
 func ListFilenamesInTarGz(filepath string) ([]string, error) {
-    // Open the tar.gz file
-    file, err := os.Open(filepath)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open file: %w", err)
-    }
-    defer file.Close()
+	// Open the tar.gz file
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
 
-    // Create a new gzip reader
-    gzReader, err := gzip.NewReader(file)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create gzip reader: %w", err)
-    }
-    defer gzReader.Close()
+	// Create a new gzip reader
+	gzReader, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzReader.Close()
 
-    // Create a new tar reader
-    tarReader := tar.NewReader(gzReader)
+	// Create a new tar reader
+	tarReader := tar.NewReader(gzReader)
 
-    var filenames []string
+	var filenames []string
 
-    // Iterate through the files in the tar archive
-    for {
-        header, err := tarReader.Next()
-        if err == io.EOF {
-            break // End of tar archive
-        }
-        if err != nil {
-            return nil, fmt.Errorf("failed to read tar entry: %w", err)
-        }
+	// Iterate through the files in the tar archive
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of tar archive
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read tar entry: %w", err)
+		}
 
-        filenames = append(filenames, header.Name)
-    }
+		filenames = append(filenames, header.Name)
+	}
 
-    return filenames, nil
+	return filenames, nil
 }
 
 func ListTarGzFiles(dir string) ([]string, error) {
@@ -261,53 +260,53 @@ func ExtractJSONFilesFromTarGz(tarGzPath string, jsonFileNames []string) (map[st
 }
 
 func ExtractFilesFromTarGz(filepath string, filenamesToExtract []string) (map[string][]byte, error) {
-    // Open the tar.gz file
-    file, err := os.Open(filepath)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open file: %w", err)
-    }
-    defer file.Close()
+	// Open the tar.gz file
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
 
-    // Create a new gzip reader
-    gzReader, err := gzip.NewReader(file)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create gzip reader: %w", err)
-    }
-    defer gzReader.Close()
+	// Create a new gzip reader
+	gzReader, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzReader.Close()
 
-    // Create a new tar reader
-    tarReader := tar.NewReader(gzReader)
+	// Create a new tar reader
+	tarReader := tar.NewReader(gzReader)
 
-    filesContent := make(map[string][]byte)
-    filenamesToExtractMap := make(map[string]struct{}, len(filenamesToExtract))
-    for _, filename := range filenamesToExtract {
-        filenamesToExtractMap[filename] = struct{}{}
-    }
+	filesContent := make(map[string][]byte)
+	filenamesToExtractMap := make(map[string]struct{}, len(filenamesToExtract))
+	for _, filename := range filenamesToExtract {
+		filenamesToExtractMap[filename] = struct{}{}
+	}
 
-    // Iterate through the files in the tar archive
-    for {
-        header, err := tarReader.Next()
-        if err == io.EOF {
-            break // End of tar archive
-        }
-        if err != nil {
-            return nil, fmt.Errorf("failed to read tar entry: %w", err)
-        }
+	// Iterate through the files in the tar archive
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of tar archive
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read tar entry: %w", err)
+		}
 
-        // Check if the current file is in the list of files to extract
-        if _, shouldExtract := filenamesToExtractMap[header.Name]; shouldExtract {
-            // Read the file content
-            content, err := io.ReadAll(tarReader)
-            if err != nil {
-                return nil, fmt.Errorf("failed to read file content: %w", err)
-            }
+		// Check if the current file is in the list of files to extract
+		if _, shouldExtract := filenamesToExtractMap[header.Name]; shouldExtract {
+			// Read the file content
+			content, err := io.ReadAll(tarReader)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file content: %w", err)
+			}
 
-            // Store the file content in the map
-            filesContent[header.Name] = content
-        }
-    }
+			// Store the file content in the map
+			filesContent[header.Name] = content
+		}
+	}
 
-    return filesContent, nil
+	return filesContent, nil
 }
 
 /*
@@ -421,7 +420,6 @@ func ExtractTarGz(tarGzPath, dest string) error {
 	}
 	return nil
 }
-
 
 /*
 // ExtractTarGz extracts a tar.gz file to the specified destination
@@ -563,10 +561,10 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 	}
 
 	/*
-	// Copy all files from the temporary directory to the destination directory
-	if err := CopyDir(tempDir, dest); err != nil {
-		return fmt.Errorf("copy files to destination: %v", err)
-	}
+		// Copy all files from the temporary directory to the destination directory
+		if err := CopyDir(tempDir, dest); err != nil {
+			return fmt.Errorf("copy files to destination: %v", err)
+		}
 	*/
 
 	fmt.Printf("%s\n", tempDir)
@@ -579,7 +577,7 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 		}
 
 		// Check if the current path is a directory
-		if info.IsDir() && info.Name() == "meta"{
+		if info.IsDir() && info.Name() == "meta" {
 			//directories = append(directories, path)
 			metaDir = path
 			return nil
@@ -600,18 +598,17 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 	// Run the command
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("execute cp command: %v", err)
-	}	
+	}
 
 	return nil
 }
 
-
 func RemoveFirstPathElement(path string) string {
-    parts := strings.Split(path, string(filepath.Separator))
-    if len(parts) > 1 {
-        return filepath.Join(parts[1:]...)
-    }
-    return path // Return the original path if there's only one part
+	parts := strings.Split(path, string(filepath.Separator))
+	if len(parts) > 1 {
+		return filepath.Join(parts[1:]...)
+	}
+	return path // Return the original path if there's only one part
 }
 
 func CreateSymlink(srcFile string, linkName string) error {
@@ -652,7 +649,6 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 
 	return matches, nil
 }
-
 
 func CreateTempDirectory() (string, error) {
 	// Create a temporary directory with a specified prefix

@@ -87,8 +87,7 @@ func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
 	return nil
 }
 
-
-func processCollections(basePath string, collectionsPath string) (error) {
+func processCollections(basePath string, collectionsPath string) error {
 
 	if !utils.IsDir(collectionsPath) {
 		fmt.Printf("%s is not a directory\n", collectionsPath)
@@ -169,7 +168,7 @@ func processCollections(basePath string, collectionsPath string) (error) {
 	return nil
 }
 
-func processRoles(basePath string, rolesPath string) (error) {
+func processRoles(basePath string, rolesPath string) error {
 	if !utils.IsDir(rolesPath) {
 		fmt.Printf("%s is not a directory\n", rolesPath)
 		return nil
@@ -212,8 +211,7 @@ func processRoles(basePath string, rolesPath string) (error) {
 			rmeta.GalaxyInfo.Version = extractRoleVersionFromTarName(f)
 		}
 
-
-		pretty,_ := utils.PrettyPrint(rmeta)
+		pretty, _ := utils.PrettyPrint(rmeta)
 		fmt.Println(pretty)
 
 		rolesMeta = append(rolesMeta, rmeta)
@@ -226,9 +224,9 @@ func processRoles(basePath string, rolesPath string) (error) {
 
 			cf := RoleCachedFileInfo{
 				Namespace: rmeta.GalaxyInfo.Namespace,
-				Name: rmeta.GalaxyInfo.RoleName,
-				Version: rmeta.GalaxyInfo.Version,
-				FileName: tfn,
+				Name:      rmeta.GalaxyInfo.RoleName,
+				Version:   rmeta.GalaxyInfo.Version,
+				FileName:  tfn,
 			}
 			roleFilesCache = append(roleFilesCache, cf)
 		}

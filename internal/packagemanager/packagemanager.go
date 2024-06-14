@@ -27,7 +27,7 @@ type GalaxyYamlMeta struct {
 
 type RoleInstallInfo struct {
 	InstallDate string `yaml:"install_date"`
-	Version string `yaml:"version"`
+	Version     string `yaml:"version"`
 }
 
 type PackageManager struct {
@@ -143,9 +143,9 @@ func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name st
 
 func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string, version string, fn string) error {
 	/*
-	# roles/geerlingguy.docker/meta/.galaxy_install_info
-	1 install_date: 'Thu 13 Jun 2024 02:23:22 PM '                                                                                                                                                                                                                                                                                                               
-  	2 version: 7.2.0
+		# roles/geerlingguy.docker/meta/.galaxy_install_info
+		1 install_date: 'Thu 13 Jun 2024 02:23:22 PM '
+	  	2 version: 7.2.0
 	*/
 
 	rPath := filepath.Join(pkgmgr.BasePath, "roles")
@@ -153,7 +153,7 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 	utils.MakeDirs(rPath)
 
 	// Basepath / collections / ansible_collections / namespace / name / ...
-	dirPath := filepath.Join(rPath, namespace + "." + name)
+	dirPath := filepath.Join(rPath, namespace+"."+name)
 	fmt.Printf("\t%s\n", dirPath)
 	utils.MakeDirs(dirPath)
 	fmt.Printf("extracting %s to %s\n", fn, dirPath)
@@ -167,7 +167,7 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 	formattedTime := currentTime.Format("Mon 02 Jan 2006 03:04:05 PM ")
 	infoYAML := RoleInstallInfo{
 		InstallDate: formattedTime,
-		Version: version,
+		Version:     version,
 	}
 	yamlData, _ := yaml.Marshal(infoYAML)
 	ymlFileName := filepath.Join(dirPath, "meta", ".galaxy_install_info")
@@ -184,7 +184,7 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 		fmt.Printf("Error writing to yml file: %v\n", err)
 		return err
 	}
-	
+
 	return nil
 }
 

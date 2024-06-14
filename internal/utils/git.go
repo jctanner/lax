@@ -12,49 +12,49 @@ import (
 
 // cloneRepo clones a Git repository to the specified path
 func CloneRepo(url, path string) error {
-    // Ensure the target directory exists
-    err := os.MkdirAll(path, 0755)
-    if err != nil {
-        return fmt.Errorf("failed to create directory: %v", err)
-    }
+	// Ensure the target directory exists
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
 
-    // Clone the repository
-    _, err = git.PlainClone(path, false, &git.CloneOptions{
-        URL:      url,
-        Progress: os.Stdout,
-    })
-    if err != nil {
-        return fmt.Errorf("failed to clone repository: %v", err)
-    }
+	// Clone the repository
+	_, err = git.PlainClone(path, false, &git.CloneOptions{
+		URL:      url,
+		Progress: os.Stdout,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to clone repository: %v", err)
+	}
 
-    return nil
+	return nil
 }
 
 // listTags lists the tags in the given repository path
 func ListTags(path string) ([]string, error) {
-    // Open the repository
-    repo, err := git.PlainOpen(path)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open repository: %v", err)
-    }
+	// Open the repository
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open repository: %v", err)
+	}
 
-    // Get the tag references
-    tagRefs, err := repo.Tags()
-    if err != nil {
-        return nil, fmt.Errorf("failed to get tags: %v", err)
-    }
+	// Get the tag references
+	tagRefs, err := repo.Tags()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tags: %v", err)
+	}
 
-    // Iterate over the tags and collect their names
-    var tags []string
-    err = tagRefs.ForEach(func(ref *plumbing.Reference) error {
-        tags = append(tags, ref.Name().Short())
-        return nil
-    })
-    if err != nil {
-        return nil, fmt.Errorf("failed to iterate tags: %v", err)
-    }
+	// Iterate over the tags and collect their names
+	var tags []string
+	err = tagRefs.ForEach(func(ref *plumbing.Reference) error {
+		tags = append(tags, ref.Name().Short())
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to iterate tags: %v", err)
+	}
 
-    return tags, nil
+	return tags, nil
 }
 
 func GetCommitDate(repoPath string, commitHash string) (string, error) {
@@ -88,22 +88,21 @@ func GetLatestCommitHash(repoPath string) (string, error) {
 }
 
 func CheckoutBranch(path, branchName string) error {
-    // Run the git checkout command as a subprocess with the working directory set to the repository path
-    cmd := exec.Command("git", "checkout", branchName)
-    cmd.Dir = path
-    if err := cmd.Run(); err != nil {
-        return fmt.Errorf("failed to checkout branch: %v", err)
-    }
-    return nil
+	// Run the git checkout command as a subprocess with the working directory set to the repository path
+	cmd := exec.Command("git", "checkout", branchName)
+	cmd.Dir = path
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to checkout branch: %v", err)
+	}
+	return nil
 }
 
-
 func CheckoutTag(path, tagName string) error {
-    // Run the git checkout command as a subprocess with the working directory set to the repository path
-    cmd := exec.Command("git", "checkout", tagName)
-    cmd.Dir = path
-    if err := cmd.Run(); err != nil {
-        return fmt.Errorf("failed to checkout tag: %v", err)
-    }
-    return nil
+	// Run the git checkout command as a subprocess with the working directory set to the repository path
+	cmd := exec.Command("git", "checkout", tagName)
+	cmd.Dir = path
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to checkout tag: %v", err)
+	}
+	return nil
 }
