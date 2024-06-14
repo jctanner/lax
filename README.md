@@ -11,6 +11,7 @@ LAX is a sleek and efficient CLI tool designed to replace Ansible-Galaxy. It sim
 ## Benchmarks
 
 Lax is faster than ansible-galaxy ...
+
 ```
 # lax collection install --server=https://tannerjc.net/galaxy sivel.acd
 real    0m21.897s
@@ -27,7 +28,7 @@ sys     0m8.316s
 Why is it faster? It's not because it's written in golang. It's because ansible-galaxy and the galaxy server api have been designed to make a LOT of network requests to find information about collections and to build dependency maps ...
 
 ```
-$ rm -rf ~/.ansible; ansible-galaxy collection install -vvvv sivel.acd 
+$ rm -rf ~/.ansible; ansible-galaxy collection install -vvvv sivel.acd
 ...
 Calling Galaxy at https://galaxy.ansible.com/api/
 Found API version 'v3, pulp-v3, v1' with Galaxy server default (https://galaxy.ansible.com/api/)
@@ -58,15 +59,13 @@ ansible-galaxy has to fetch at least 2 api endpoints for every collection it nee
 
 Lax on the other hand is designed to work more like yum/dnf in that the "server" isn't an API, it is instead just an http based file share. Lax checks for a metadata.json file at the root of the file share and from that definition, fetches a tar.gz of all collection metadata (including dependencies). Using just that metadata, lax compiles a depedency tree and then fetches all the necessary tarballs from the fileshare.
 
-
-
 ## Installation
 
-TBD
+See the [User Guide](docs/USERGUIDE.md)
 
 ## Usage
 
-TBD
+See the [User Guide](docs/USERGUIDE.md)
 
 ## Contributing
 
