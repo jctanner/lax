@@ -106,6 +106,78 @@ root@a47952ea7696:/go# find /tmp/foo
 
 ## Creating a Repo
 
+Assuming you have a directory of content where you've stored .tar.gz files for roles and or collections like so ...
+
+```
+root@a47952ea7696:/go# find /tmp/foo -type f
+/tmp/foo/.cache/roles/98d7187f.json
+/tmp/foo/.cache/roles/a4984ad.json
+/tmp/foo/.cache/roles/3ed6394e.json
+/tmp/foo/.cache/roles/2056ecf0.json
+/tmp/foo/.cache/roles/4ae72842.json
+/tmp/foo/.cache/roles/95904a2e.json
+/tmp/foo/collections/geerlingguy-mac-4.0.1.tar.gz
+/tmp/foo/roles/geerlingguy-docker-7.2.0.tar.gz
+```
+
+You can then create a "repository", which really just means compile some index files that contain the metadata about the content in the directory...
+
+```
+root@a47952ea7696:/go# lax createrepo --dest=/tmp/foo
+...
+root@a47952ea7696:/go# find /tmp/foo
+/tmp/foo
+/tmp/foo/.cache
+/tmp/foo/.cache/roles
+/tmp/foo/.cache/roles/98d7187f.json
+/tmp/foo/.cache/roles/a4984ad.json
+/tmp/foo/.cache/roles/3ed6394e.json
+/tmp/foo/.cache/roles/2056ecf0.json
+/tmp/foo/.cache/roles/4ae72842.json
+/tmp/foo/.cache/roles/95904a2e.json
+/tmp/foo/.cache/collections
+/tmp/foo/collections
+/tmp/foo/collections/geerlingguy-mac-4.0.1.tar.gz
+/tmp/foo/roles
+/tmp/foo/roles/geerlingguy-docker-7.2.0.tar.gz
+/tmp/foo/metadata
+/tmp/foo/collection_manifests.tar.gz    <-- the MANIFEST.json content for every collection
+/tmp/foo/collection_files.tar.gz        <-- a listing of all files in every collection
+/tmp/foo/role_manifests.tar.gz          <-- the meta/main.yml content for every role
+/tmp/foo/role_files.tar.gz              <-- a listing of all files in every role
+/tmp/foo/repometa.json                  <-- maps out the other meta files and includes timestamps
+```
+
+This repository is now ready to serve!!!
+
 ## Hosting a Repo
 
+LAX aims to be flexible, so the repository directory can live locally OR it can live on an http fileshare you've hosted on the network. There is no special magic to hosting files on the internet and most webserver implemenations can serve out the files. Use rsync or ftp or whatever protocol to send the repository directory to your web host.
+
 ## Installing Content From a Repo
+
+LAX's true purpose is to install roles and collections so that ansible and ansible-playbook are able to use them. It will also try to remain fully compatible with the expectations of the `ansible-galaxy` cli for ondisk files.
+
+To install a role from a local repository directory ...
+
+```
+root@a47952ea7696:/go# lax role install --server=/tmp/foo geerlingguy.docker
+...
+root@a47952ea7696:/go# ansible-galaxy role list
+# /root/.ansible/roles
+- geerlingguy.docker, 7.2.0
+```
+
+To install a role from a local repository directory ...
+
+```
+root@a47952ea7696:/go# lax collection install --server=/tmp/foo geerlingguy.mac
+...
+root@a47952ea7696:/go# ansible-galaxy collection list
+# /root/.ansible/collections/ansible_collections
+Collection      Version
+--------------- -------
+geerlingguy.mac 4.0.1
+```
+
+If you decided to create an http repository server or found one on the internet, swap the /tmp/foo from the previous examples with the url to the server's location with the repository path. ie `--server=https://tannerjc.net/galaxy`
