@@ -3,10 +3,11 @@ package repository
 import (
 	"fmt"
 	"io"
-	"lax/internal/utils"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/jctanner/lax/internal/utils"
 
 	"encoding/gob"
 	"encoding/json"

@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"lax/internal/repository"
-	"lax/internal/utils"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/utils"
 
 	"gopkg.in/yaml.v2"
 )
@@ -143,9 +144,9 @@ func (pkgmgr *PackageManager) InstalCollectionFromPath(namespace string, name st
 
 func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string, version string, fn string) error {
 	/*
-		# roles/geerlingguy.docker/meta/.galaxy_install_info
-		1 install_date: 'Thu 13 Jun 2024 02:23:22 PM '
-	  	2 version: 7.2.0
+			# roles/geerlingguy.docker/meta/.galaxy_install_info
+			1 install_date: 'Thu 13 Jun 2024 02:23:22 PM '
+		  	2 version: 7.2.0
 	*/
 
 	rPath := filepath.Join(pkgmgr.BasePath, "roles")

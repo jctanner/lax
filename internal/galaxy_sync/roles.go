@@ -2,14 +2,15 @@ package galaxy_sync
 
 import (
 	"fmt"
-	"lax/internal/repository"
-	"lax/internal/utils"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/utils"
 )
 
 func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, latest_only bool) ([]Role, error) {

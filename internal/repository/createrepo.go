@@ -3,10 +3,11 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
-	"lax/internal/utils"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/jctanner/lax/internal/utils"
 )
 
 func CreateRepo(dest string, roles_only bool, collectios_only bool) error {

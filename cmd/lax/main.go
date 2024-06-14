@@ -1,7 +1,7 @@
 package main
 
 import (
-	"lax/pkg/lax"
+	"github.com/jctanner/lax/pkg/lax"
 )
 
 func main() {

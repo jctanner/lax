@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"lax/internal/galaxy_sync"
-	"lax/internal/repository"
-	"lax/internal/utils"
+	"github.com/jctanner/lax/internal/galaxy_sync"
+	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/utils"
 
 	"github.com/spf13/cobra"
 
-	"lax/internal/collections"
-	"lax/internal/roles"
+	"github.com/jctanner/lax/internal/collections"
+	"github.com/jctanner/lax/internal/roles"
 )
 
 var server string

@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"lax/internal/utils"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/jctanner/lax/internal/utils"
 
 	"github.com/blang/semver/v4"
 	//"github.com/Masterminds/semver/v3"

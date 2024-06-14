@@ -2,10 +2,11 @@ package roles
 
 import (
 	"fmt"
-	"lax/internal/packagemanager"
-	"lax/internal/repository"
-	"lax/internal/utils"
 	"time"
+
+	"github.com/jctanner/lax/internal/packagemanager"
+	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/utils"
 )
 
 func Install(dest string, cachedir string, server string, requirements_file string, namespace string, name string, version string, args []string) error {

@@ -2,12 +2,13 @@ package galaxy_sync
 
 import (
 	"fmt"
-	"lax/internal/utils"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jctanner/lax/internal/utils"
 )
 
 func GalaxySync(

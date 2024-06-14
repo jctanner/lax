@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"lax/internal/utils"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jctanner/lax/internal/utils"
 )
 
 type CachedGalaxyClient struct {
