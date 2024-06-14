@@ -1,4 +1,4 @@
-package lax
+package laxcmd
 
 import (
 	"fmt"

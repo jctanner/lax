@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/jctanner/lax/pkg/lax"
+	laxcmd "github.com/jctanner/lax/pkg/lax"
 )
 
 func main() {
-	lax.Execute()
+	laxcmd.Execute()
 }
