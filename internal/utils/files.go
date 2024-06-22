@@ -11,7 +11,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+
 	//"encoding/json"
+	"github.com/sirupsen/logrus"
 )
 
 // FileInfo holds information about the file type
@@ -641,7 +643,9 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 	searchPattern := filepath.Join(directory, pattern)
 
 	// Use filepath.Glob to find matching files
+	logrus.Debugf("%s search starting\n", pattern)
 	matches, err := filepath.Glob(searchPattern)
+	logrus.Debugf("%s search finished\n", pattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search for files: %w", err)
 		panic("")
