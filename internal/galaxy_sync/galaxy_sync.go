@@ -91,7 +91,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 			}
 		}
 
-		fmt.Printf("%d total roles\n", len(roles))
+		logrus.Infof("%d total roles\n", len(roles))
 
 		maxConcurrent := download_concurrency
 
@@ -102,8 +102,6 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 			wg.Add(1)
 			go func(ix int, role Role) {
 				defer wg.Done()
-
-				//fmt.Printf("%d: %s\n", ix, role)
 
 				badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
 				if utils.IsFile(badFile) {

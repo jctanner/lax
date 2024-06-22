@@ -143,6 +143,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
 	logrus.Debugf("%s\n", matches)
 	if len(matches) > 0 {
+		logrus.Debugf("no matches found.")
 		return matches[0], nil
 	}
 	//panic("")
@@ -152,6 +153,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	gitDir := path.Join(cacheDir, "git")
 	utils.MakeDirs(gitDir)
 	repoPath := path.Join(gitDir, fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo))
+	logrus.Debugf("checking for %s filepath\n", repoPath)
 	if !utils.IsDir(repoPath) {
 		logrus.Infof("clone %s -> %s\n", repoUrl, repoPath)
 		err := utils.CloneRepo(repoUrl, repoPath)
@@ -163,14 +165,17 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	}
 
 	if role.GithubBranch != "" {
+		logrus.Debugf("checkout %s branch in %s\n", role.GithubBranch, repoPath)
 		utils.CheckoutBranch(repoPath, role.GithubBranch)
 	}
 
 	if role.Commit == "" {
 		// get the latest commit hash
+		logrus.Debugf("enumerate latest commit in %s\n", repoPath)
 		role.Commit, _ = utils.GetLatestCommitHash(repoPath)
 	}
 
+	logrus.Debugf("get date for %s from %s\n", role.Commit, repoPath)
 	rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
 	logrus.Debugf("%s == %s\n", role.Commit, rawDate)
 	date, _ := time.Parse("2006-01-02 15:04:05 -0700", rawDate)
@@ -185,6 +190,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 
 	dstFile := fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
 	dstFile = path.Join(rolesDir, dstFile)
+	logrus.Debugf("check for %s\n", dstFile)
 	if utils.IsFile(dstFile) {
 		logrus.Debugf("%s exists\n", dstFile)
 		return dstFile, nil
