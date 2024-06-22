@@ -2,7 +2,6 @@ package galaxy_sync
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/jctanner/lax/internal/repository"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 )
 
 func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, latest_only bool) ([]Role, error) {
@@ -18,7 +18,8 @@ func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, late
 	// iterate roles ...
 	roles, err := apiClient.GetRoles(namespace, name, latest_only)
 	if err != nil {
-		log.Fatalf("Error fetching roles: %v", err)
+		logrus.Errorf("Error fetching roles: %v", err)
+		return roles, err
 	}
 
 	// Sort the list by GithubUser and then by GithubRepo
@@ -46,7 +47,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 
 	tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/refs/tags/%s.tar.gz", role.GithubUser, role.GithubRepo, version.Name)
 	//fmt.Printf("\t%s -> %s\n", baseUrl, tarFilePath)
-	fmt.Printf("\tHEAD %s\n", tarUrl)
+	logrus.Infof("\tHEAD %s\n", tarUrl)
 	if !utils.IsURLGood(tarUrl) {
 		return "", fmt.Errorf("url failed http.HEAD check")
 	}
@@ -54,7 +55,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	utils.DownloadBinaryFileToPath(tarUrl, tarFilePath)
 
 	if !utils.IsFile(tarFilePath) {
-		fmt.Printf("%s DID NOT ACTUALLY DOWNLOAD!!!\n", tarFilePath)
+		logrus.Errorf("%s DID NOT ACTUALLY DOWNLOAD!!!\n", tarFilePath)
 		panic("")
 	}
 
@@ -63,9 +64,9 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	needsRename := false
 
 	meta, err := repository.GetRoleMetaFromTarball(tarFilePath)
-	fmt.Printf("meta: %s\n", meta)
+	logrus.Debugf("meta: %s\n", meta)
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		logrus.Errorf("%s\n", err)
 		panic("")
 	}
 
@@ -101,12 +102,12 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	newFn := fmt.Sprintf("%s-%s-%s.tar.gz", newNamespace, newName, version.Name)
 	newFp := filepath.Join(destdir, newFn)
 
-	fmt.Printf("rename %s -> %s\n", tarFilePath, newFp)
-	fmt.Printf("symlink %s -> %s\n", tarFilePath, newFp)
+	logrus.Debugf("rename %s -> %s\n", tarFilePath, newFp)
+	logrus.Debugf("symlink %s -> %s\n", tarFilePath, newFp)
 	err = os.Rename(tarFilePath, newFp)
 
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		logrus.Errorf("%s\n", err)
 		panic("")
 	}
 
@@ -114,7 +115,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	//err = utils.CreateSymlink(tarFilePath, newFp)
 
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		logrus.Errorf("%s\n", err)
 		panic("")
 	}
 
@@ -138,9 +139,9 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 
 	// short circuit if the role has a commit and there's a relevant tarball
 	globPattern := fmt.Sprintf("%s-%s-*-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, role.Commit)
-	fmt.Printf("looking for files matching %s\n", globPattern)
+	logrus.Debugf("looking for files matching %s\n", globPattern)
 	matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
-	fmt.Printf("%s\n", matches)
+	logrus.Debugf("%s\n", matches)
 	if len(matches) > 0 {
 		return matches[0], nil
 	}
@@ -152,7 +153,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	utils.MakeDirs(gitDir)
 	repoPath := path.Join(gitDir, fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo))
 	if !utils.IsDir(repoPath) {
-		fmt.Printf("clone %s -> %s\n", repoUrl, repoPath)
+		logrus.Infof("clone %s -> %s\n", repoUrl, repoPath)
 		err := utils.CloneRepo(repoUrl, repoPath)
 		if err != nil {
 			fmt.Printf("failed to clone %s to %s ::%s\n", repoUrl, repoPath, err)
@@ -171,11 +172,11 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	}
 
 	rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
-	fmt.Printf("%s == %s\n", role.Commit, rawDate)
+	logrus.Debugf("%s == %s\n", role.Commit, rawDate)
 	date, _ := time.Parse("2006-01-02 15:04:05 -0700", rawDate)
-	fmt.Printf("%s == %s\n", role.Commit, date)
+	logrus.Debugf("%s == %s\n", role.Commit, date)
 	formattedDate := date.Format("20060102150405")
-	fmt.Printf("%s == %s\n", role.Commit, formattedDate)
+	logrus.Debugf("%s == %s\n", role.Commit, formattedDate)
 
 	//panic("")
 
@@ -185,17 +186,17 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	dstFile := fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
 	dstFile = path.Join(rolesDir, dstFile)
 	if utils.IsFile(dstFile) {
-		fmt.Printf("%s exists\n", dstFile)
+		logrus.Debugf("%s exists\n", dstFile)
 		return dstFile, nil
 	}
 
 	dstFile = fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version)
 	dstFile = path.Join(rolesDir, dstFile)
 	tarUrl := fmt.Sprintf("https://github.com/%s/%s/archive/%s.tar.gz", role.GithubUser, role.GithubRepo, role.Commit)
-	fmt.Printf("%s -> %s\n", tarUrl, dstFile)
+	logrus.Infof("%s -> %s\n", tarUrl, dstFile)
 	_, err := utils.DownloadBinaryFileToPath(tarUrl, dstFile)
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		logrus.Errorf("%s\n", err)
 		//panic("")
 		return "", err
 	}
