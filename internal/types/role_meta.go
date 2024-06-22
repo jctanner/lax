@@ -10,7 +10,7 @@ type RoleMeta struct {
 }
 
 type GalaxyInfo struct {
-	Author    string `yaml:"author"`
+	Author    Author `yaml:"author"`
 	Namespace string `yaml:"namespace"`
 	RoleName  string `yaml:"role_name"`
 
@@ -25,6 +25,26 @@ type GalaxyInfo struct {
 	Platforms         []RolePlatform   `yaml:"platforms"`
 	GalaxyTags        []string         `yaml:"galaxy_tags"`
 	Dependencies      []RoleDependency `yaml:"dependencies"`
+}
+
+type Author struct {
+	Value []string
+}
+
+func (a *Author) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var singleAuthor string
+	if err := unmarshal(&singleAuthor); err == nil {
+		a.Value = []string{singleAuthor}
+		return nil
+	}
+
+	var multipleAuthors []string
+	if err := unmarshal(&multipleAuthors); err == nil {
+		a.Value = multipleAuthors
+		return nil
+	}
+
+	return fmt.Errorf("failed to unmarshal Author field")
 }
 
 type RolePlatform struct {
