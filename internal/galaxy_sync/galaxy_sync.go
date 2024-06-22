@@ -152,6 +152,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 					logrus.Debugf("Enumerating virtual role version ...\n")
 					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 					if err != nil {
+						logrus.Errorf("marking as bad due to %s\n", err)
 						file, _ := os.Create(badFile)
 						file.Write([]byte(fmt.Sprintf("%s\n", err)))
 						defer file.Close()
