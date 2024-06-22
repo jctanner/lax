@@ -8,6 +8,7 @@ import (
 	"github.com/jctanner/lax/internal/repository"
 	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 
@@ -16,7 +17,11 @@ import (
 )
 
 func SetLogLevel(kwargs *types.CmdKwargs) {
-
+	if kwargs.Verbose {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
 }
 
 func Execute() {
