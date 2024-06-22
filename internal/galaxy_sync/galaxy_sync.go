@@ -169,9 +169,11 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 		go func(ix int, role Role) {
 			defer wg.Done()
 
+			rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
+
 			badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
 			if utils.IsFile(badFile) {
-				logrus.Debugf("found %s, skipping\n", badFile)
+				logrus.Debugf("%s found %s, skipping\n", rname, badFile)
 				return
 			}
 
@@ -181,18 +183,20 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 					versions, _ = reduceRoleVersionsToHighest(versions)
 				}
 				for _, roleVersion := range versions {
-					logrus.Debugf("Goroutine %d waiting to acquire semaphore\n", ix)
+					rvname := rname + "==" + roleVersion.Name
+
+					logrus.Debugf("%s Goroutine %d waiting to acquire semaphore\n", rvname, ix)
 					sem <- struct{}{} // acquire a slot
-					logrus.Debugf("Goroutine %d acquired semaphore\n", ix)
+					logrus.Debugf("%s Goroutine %d acquired semaphore\n", rvname, ix)
 
 					go func(role Role, roleVersion RoleVersion) {
 						defer func() {
 							<-sem // release the slot
-							logrus.Debugf("Goroutine %d released semaphore\n", ix)
+							logrus.Debugf("%s Goroutine %d released semaphore\n", rvname, ix)
 						}()
 
 						if version != "" && roleVersion.Name != version {
-							logrus.Debugf("%s != %s, skipping\n", roleVersion.Name, version)
+							logrus.Debugf("%s %s != %s, skipping\n", rvname, roleVersion.Name, version)
 							return
 						}
 
@@ -201,48 +205,51 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 							fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name),
 						)
 						vBadFile, _ = utils.GetAbsPath(vBadFile)
-						logrus.Debugf("checking for %s\n", vBadFile)
-						if utils.IsFile(vBadFile) {
-							logrus.Debugf("found %s, skipping\n", vBadFile)
+						logrus.Debugf("%s checking for %s\n", rvname, vBadFile)
+						if utils.IsFile(vBadFile) || utils.IsLink(vBadFile) {
+							logrus.Debugf("%s found %s, skipping\n", rvname, vBadFile)
 							return
+						} else {
+							logrus.Debugf("%s %s not found\n", rvname, vBadFile)
 						}
 
-						logrus.Infof("%s not found\n", vBadFile)
-
-						//logrus.Infof("sleeping 1s before GET ...")
-						//time.Sleep(1 * time.Second)
-
-						logrus.Infof("GET %s %s\n", role, roleVersion)
-						fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-						//logrus.Debugf("\t\tnew-file: %s\n", fn)
-						logrus.Infof("sleeping 1s after GET ...")
-						time.Sleep(1 * time.Second)
+						logrus.Infof("%s get artifact...\n", rvname)
+						fn, fetched, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+						logrus.Debugf("%s artifact: %s\n", rvname, fn)
+						if fetched {
+							logrus.Infof("%s sleeping 1s after GET ...", rvname)
+							time.Sleep(1 * time.Second)
+						}
 
 						if err != nil {
 							// mark as "BAD"
-							logrus.Errorf("\t\tmarking %s. %s as 'bad'\n", role, roleVersion)
+							logrus.Errorf("%s marking as 'bad'\n", rvname)
 							file, _ := os.Create(vBadFile)
 							file.Write([]byte(fmt.Sprintf("%s\n", err)))
-							defer file.Close()
+							//defer file.Close()
+							file.Close()
 						} else {
 							//logrus.Debugf("\t\t%s\n", fn)
-							logrus.Debugf("\t\tsaved: %s\n", fn)
+							//logrus.Debugf("\t\tsaved: '%s'\n", fn)
 						}
+
+						//return
 
 					}(role, roleVersion)
 				}
 			} else {
-				time.Sleep(2 * time.Second)
-				logrus.Debugf("Enumerating virtual role version ...\n")
+				//time.Sleep(2 * time.Second)
+				logrus.Debugf("%s Enumerating virtual role version ...\n", rname)
 				fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 				if err != nil {
-					logrus.Errorf("marking as bad due to %s\n", err)
+					logrus.Errorf("%s marking as bad due to %s\n", rname, err)
 					file, _ := os.Create(badFile)
 					file.Write([]byte(fmt.Sprintf("%s\n", err)))
-					defer file.Close()
+					//defer file.Close()
+					file.Close()
 					return
 				}
-				fmt.Printf("\t\t%s\n", fn)
+				fmt.Printf("%s artifact:%s\n", rname, fn)
 			}
 		}(ix, role)
 	}

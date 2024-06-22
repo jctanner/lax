@@ -33,14 +33,14 @@ func syncRoles(apiClient CachedGalaxyClient, namespace string, name string, late
 	return roles, nil
 }
 
-func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (string, error) {
+func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (string, bool, error) {
 	// is there a release tarball ... ?
 	// https://github.com/0ccupi3R/ansible-kibana/archive/refs/tags/7.6.1.tar.gz
 
 	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, version.Name)
 	tarFilePath := filepath.Join(destdir, tarName)
 	if utils.IsFile(tarFilePath) || utils.IsLink(tarFilePath) {
-		return tarFilePath, nil
+		return tarFilePath, false, nil
 	}
 	//fmt.Printf("NEEED TO FETCH %s\n", tarFilePath)
 	//panic("check that tar!")
@@ -49,7 +49,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	//fmt.Printf("\t%s -> %s\n", baseUrl, tarFilePath)
 	logrus.Infof("\tHEAD %s\n", tarUrl)
 	if !utils.IsURLGood(tarUrl) {
-		return "", fmt.Errorf("url failed http.HEAD check")
+		return "", true, fmt.Errorf("url failed http.HEAD check")
 	}
 
 	utils.DownloadBinaryFileToPath(tarUrl, tarFilePath)
@@ -95,7 +95,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	}
 
 	if !needsRename {
-		return "", nil
+		return "", true, nil
 	}
 
 	// construct the new filename
@@ -121,7 +121,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 
 	//panic("")
 
-	return "", nil
+	return "", true, nil
 }
 
 func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (string, error) {
