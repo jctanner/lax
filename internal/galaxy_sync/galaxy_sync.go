@@ -129,19 +129,22 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 								return
 							}
 
-							fmt.Printf("%s not found\n", vBadFile)
-							time.Sleep(2 * time.Second)
+							logrus.Infof("%s not found\n", vBadFile)
+							logrus.Infof("sleeping 1s before GET ...")
+							time.Sleep(1 * time.Second)
 							logrus.Infof("GET %s %s\n", role, roleVersion)
 							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-							fmt.Printf("\t\t%s\n", fn)
+							//logrus.Debugf("\t\tnew-file: %s\n", fn)
 
 							if err != nil {
 								// mark as "BAD"
+								logrus.Errorf("\t\tmarking %s. %s as 'bad'\n", role, roleVersion)
 								file, _ := os.Create(vBadFile)
 								file.Write([]byte(fmt.Sprintf("%s\n", err)))
 								defer file.Close()
 							} else {
-								fmt.Printf("\t\t%s\n", fn)
+								//logrus.Debugf("\t\t%s\n", fn)
+								logrus.Debugf("\t\tsaved: %s\n", fn)
 							}
 
 						}(role, roleVersion)
