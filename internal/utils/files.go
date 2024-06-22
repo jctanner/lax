@@ -12,8 +12,8 @@ import (
 	"compress/gzip"
 	"io"
 
-	//"encoding/json"
 	"github.com/sirupsen/logrus"
+	//"encoding/json"
 )
 
 // FileInfo holds information about the file type
@@ -638,6 +638,7 @@ func CreateSymlink(srcFile string, linkName string) error {
 	return nil
 }
 
+/*
 func FindMatchingFiles(directory, pattern string) ([]string, error) {
 	// Combine the directory and pattern to create a full search pattern
 	searchPattern := filepath.Join(directory, pattern)
@@ -648,9 +649,31 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 	logrus.Debugf("%s search finished\n", pattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search for files: %w", err)
-		panic("")
+		//panic("")
 	}
 
+	return matches, nil
+}
+*/
+
+func FindMatchingFiles(directory string, pattern string) ([]string, error) {
+	searchPattern := filepath.Join(directory, pattern)
+	logrus.Debugf("%s search starting\n", pattern)
+	cmd := exec.Command("find", ".", "-maxdepth", "1", "-name", searchPattern)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	logrus.Debugf("%s search finished\n", pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, line := range bytes.Split(out.Bytes(), []byte{'\n'}) {
+		if len(line) > 0 {
+			matches = append(matches, string(line))
+		}
+	}
 	return matches, nil
 }
 
