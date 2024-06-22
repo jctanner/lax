@@ -126,6 +126,8 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 
 func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (string, error) {
 
+	logrus.Debugf("make role version artifact for %s\n", role)
+
 	// how can we make a sortable version from a commit?
 	// how can we make a sortable version from a branch name?
 	// how can we quickly determine if a tar already exists for the hash?
