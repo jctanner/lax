@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 
 	"github.com/blang/semver/v4"
@@ -376,7 +377,7 @@ func resolveCollectionDeps(spec utils.InstallSpec, manifests *[]CollectionManife
 
 }
 
-func resolveRoleDeps(spec utils.InstallSpec, manifests *[]RoleMeta, specs *[]utils.InstallSpec) {
+func resolveRoleDeps(spec utils.InstallSpec, manifests *[]types.RoleMeta, specs *[]utils.InstallSpec) {
 
 	candidates := RoleSpecToManifestCandidates(spec, manifests)
 
@@ -477,14 +478,14 @@ func SpecToManifestCandidates(spec utils.InstallSpec, manifests *[]CollectionMan
 	return candidates
 }
 
-func RoleSpecToManifestCandidates(spec utils.InstallSpec, manifests *[]RoleMeta) []RoleMeta {
+func RoleSpecToManifestCandidates(spec utils.InstallSpec, manifests *[]types.RoleMeta) []types.RoleMeta {
 
 	fmt.Printf("##############################################\n")
 
 	fmt.Printf("%s\n", manifests)
 
 	// get the meta for the incoming spec
-	candidates := []RoleMeta{}
+	candidates := []types.RoleMeta{}
 	for _, manifest := range *manifests {
 
 		pretty, _ := utils.PrettyPrint(manifest)

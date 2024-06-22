@@ -161,6 +161,7 @@ func Execute() {
 	syncCmd.Flags().BoolVar(&kwargs.ArtifactsOnly, "artifacts", false, "just sync the artifacts")
 	syncCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
 	syncCmd.Flags().StringVar(&kwargs.Name, "name", "", "name")
+	syncCmd.Flags().StringVar(&kwargs.Version, "version", "", "version")
 	syncCmd.Flags().IntVar(&kwargs.DownloadConcurrency, "concurrency", 1, "concurrency")
 	syncCmd.Flags().BoolVar(&kwargs.LatestOnly, "latest", false, "get only the latest version")
 	syncCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements", "r", "", "requirements file")

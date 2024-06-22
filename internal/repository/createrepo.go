@@ -196,7 +196,7 @@ func processRoles(basePath string, rolesPath string) error {
 	}
 
 	// store all role manifests
-	rolesMeta := []RoleMeta{}
+	rolesMeta := []types.RoleMeta{}
 	roleFilesCache := []RoleCachedFileInfo{}
 
 	for _, f := range roleTarBalls {

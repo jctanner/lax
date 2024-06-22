@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strconv"
 	"strings"
 
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 
 	"encoding/gob"
@@ -87,6 +87,7 @@ type RoleCachedFileInfo struct {
 	//CheckSumSHA256 string `json:"chksum_sha256"`
 }
 
+/*
 type RoleMeta struct {
 	GalaxyInfo GalaxyInfo `yaml:"galaxy_info"`
 }
@@ -202,6 +203,7 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 
 	return fmt.Errorf("failed to unmarshal Dependency")
 }
+*/
 
 func createCollectionManifestsTarGz(manifests []CollectionManifest, tarGzPath string) error {
 	// Create a buffer to write the tar archive
@@ -310,7 +312,7 @@ func ExtractCollectionManifestsFromTarGz(tarGzPath string) ([]CollectionManifest
 	return manifests, nil
 }
 
-func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
+func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]types.RoleMeta, error) {
 	// Open the tar.gz file
 	file, err := os.Open(tarGzPath)
 	if err != nil {
@@ -328,7 +330,7 @@ func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
 	// Create a tar reader
 	tarReader := tar.NewReader(gzipReader)
 
-	var manifests []RoleMeta
+	var manifests []types.RoleMeta
 
 	// Iterate over the files in the tar archive
 	for {
@@ -348,7 +350,7 @@ func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
 		}
 
 		// Unmarshal the JSON data into a Manifest object
-		var manifest RoleMeta
+		var manifest types.RoleMeta
 		if err := json.Unmarshal(jsonData, &manifest); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal JSON data: %w", err)
 		}
@@ -360,7 +362,7 @@ func ExtractRoleManifestsFromTarGz(tarGzPath string) ([]RoleMeta, error) {
 	return manifests, nil
 }
 
-func createRoleMetaTarGz(manifests []RoleMeta, tarGzPath string) error {
+func createRoleMetaTarGz(manifests []types.RoleMeta, tarGzPath string) error {
 	// Create a buffer to write the tar archive
 	var buf bytes.Buffer
 
@@ -524,11 +526,11 @@ func SortManifestsByVersion(manifests []CollectionManifest) ([]CollectionManifes
 	return sortedManifests, nil
 }
 
-func SortRoleManifestsByVersion(manifests []RoleMeta) ([]RoleMeta, error) {
+func SortRoleManifestsByVersion(manifests []types.RoleMeta) ([]types.RoleMeta, error) {
 	// Define a custom type for sorting
 	type semverManifest struct {
 		version  semver.Version
-		manifest RoleMeta
+		manifest types.RoleMeta
 	}
 
 	// Convert manifests to semverManifests
@@ -547,7 +549,7 @@ func SortRoleManifestsByVersion(manifests []RoleMeta) ([]RoleMeta, error) {
 	})
 
 	// Extract sorted manifests
-	sortedManifests := make([]RoleMeta, len(semverManifests))
+	sortedManifests := make([]types.RoleMeta, len(semverManifests))
 	for i, semverManifest := range semverManifests {
 		sortedManifests[i] = semverManifest.manifest
 	}
@@ -567,9 +569,9 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 	})
 }
 
-func GetRoleMetaFromTarball(f string) (RoleMeta, error) {
+func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 
-	var meta RoleMeta
+	var meta types.RoleMeta
 
 	tarFileNames, _ := utils.ListFilenamesInTarGz(f)
 
@@ -599,7 +601,7 @@ func GetRoleMetaFromTarball(f string) (RoleMeta, error) {
 			newstring, _ := utils.FixGalaxyIndentation(rawstring)
 			newstring = utils.AddQuotesToDescription(newstring)
 
-			var meta2 RoleMeta
+			var meta2 types.RoleMeta
 			err = yaml.Unmarshal([]byte(newstring), &meta2)
 			if err == nil {
 				return meta2, nil

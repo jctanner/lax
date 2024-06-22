@@ -23,6 +23,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	latest_only := kwargs.LatestOnly
 	namespace := kwargs.Namespace
 	name := kwargs.Name
+	version := kwargs.Version
 	requirements_file := kwargs.RequirementsFile
 
 	logrus.Infof("syncing %s to %s collections:%t roles:%t latest:%t\n", server, dest, collections_only, roles_only, latest_only)
@@ -94,7 +95,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 		logrus.Infof("%d total roles\n", len(roles))
 
 		maxConcurrent := download_concurrency
-		err := processRoles(maxConcurrent, latest_only, roles, rolesDir, cacheDir)
+		err := processRoles(maxConcurrent, latest_only, roles, rolesDir, cacheDir, version)
 		if err != nil {
 			logrus.Errorf("role processing failed: %s\n", err)
 			panic("role processing failed")
@@ -158,7 +159,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	return nil
 }
 
-func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string) error {
+func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string) error {
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
@@ -190,11 +191,19 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 							logrus.Debugf("Goroutine %d released semaphore\n", ix)
 						}()
 
-						vBadFile := path.Join(rolesDir, fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name))
+						if version != "" && roleVersion.Name != version {
+							logrus.Debugf("%s != %s, skipping\n", roleVersion.Name, version)
+							return
+						}
+
+						vBadFile := path.Join(
+							rolesDir,
+							fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name),
+						)
 						vBadFile, _ = utils.GetAbsPath(vBadFile)
 						logrus.Debugf("checking for %s\n", vBadFile)
 						if utils.IsFile(vBadFile) {
-							fmt.Printf("found %s, skipping\n", vBadFile)
+							logrus.Debugf("found %s, skipping\n", vBadFile)
 							return
 						}
 
