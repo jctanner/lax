@@ -658,12 +658,12 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 
 func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 	searchPattern := filepath.Join(directory, pattern)
-	logrus.Debugf("%s search starting\n", pattern)
+	logrus.Debugf("%s search starting\n", patsearchPatterntern)
 	cmd := exec.Command("find", ".", "-maxdepth", "1", "-name", searchPattern)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	logrus.Debugf("%s search finished\n", pattern)
+	logrus.Debugf("%s search finished\n", searchPattern)
 	if err != nil {
 		return nil, err
 	}
