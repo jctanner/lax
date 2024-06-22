@@ -67,6 +67,7 @@ func IsFile(path string) bool {
 }
 */
 
+/*
 // GetFileInfo runs the `stat` command on the provided path and parses the output
 func GetFileInfo(path string) (*FileInfo, error) {
 	// Execute the stat command
@@ -78,6 +79,36 @@ func GetFileInfo(path string) (*FileInfo, error) {
 
 	// Parse the output to determine the file type
 	fileType := strings.TrimSpace(string(output))
+
+	return &FileInfo{
+		Path: path,
+		Type: fileType,
+	}, nil
+}
+*/
+
+func GetFileInfo(path string) (*FileInfo, error) {
+	// Use os.Stat to get file information
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("file does not exist: %w", err)
+		}
+		return nil, fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	// Determine the file type
+	var fileType string
+	switch mode := info.Mode(); {
+	case mode.IsRegular():
+		fileType = "regular file"
+	case mode.IsDir():
+		fileType = "directory"
+	case mode&os.ModeSymlink != 0:
+		fileType = "symlink"
+	default:
+		fileType = "other"
+	}
 
 	return &FileInfo{
 		Path: path,
