@@ -94,78 +94,11 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 		logrus.Infof("%d total roles\n", len(roles))
 
 		maxConcurrent := download_concurrency
-
-		var wg sync.WaitGroup
-		sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
-
-		for ix, role := range roles {
-			wg.Add(1)
-			go func(ix int, role Role) {
-				defer wg.Done()
-
-				badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
-				if utils.IsFile(badFile) {
-					logrus.Debugf("found %s, skipping\n", badFile)
-					return
-				}
-
-				if len(role.SummaryFields.Versions) > 0 {
-					versions := role.SummaryFields.Versions
-					if latest_only {
-						versions, _ = reduceRoleVersionsToHighest(versions)
-					}
-					for _, roleVersion := range versions {
-						sem <- struct{}{} // acquire a slot
-						go func(role Role, roleVersion RoleVersion) {
-							defer func() { <-sem }() // release the slot
-
-							vBadFile := path.Join(rolesDir, fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name))
-							vBadFile, _ = utils.GetAbsPath(vBadFile)
-							logrus.Debugf("checking for %s\n", vBadFile)
-							if utils.IsFile(vBadFile) {
-								fmt.Printf("found %s, skipping\n", vBadFile)
-								return
-							}
-
-							logrus.Infof("%s not found\n", vBadFile)
-							logrus.Infof("sleeping 1s before GET ...")
-							time.Sleep(1 * time.Second)
-							logrus.Infof("GET %s %s\n", role, roleVersion)
-							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-							//logrus.Debugf("\t\tnew-file: %s\n", fn)
-
-							if err != nil {
-								// mark as "BAD"
-								logrus.Errorf("\t\tmarking %s. %s as 'bad'\n", role, roleVersion)
-								file, _ := os.Create(vBadFile)
-								file.Write([]byte(fmt.Sprintf("%s\n", err)))
-								defer file.Close()
-							} else {
-								//logrus.Debugf("\t\t%s\n", fn)
-								logrus.Debugf("\t\tsaved: %s\n", fn)
-							}
-
-						}(role, roleVersion)
-					}
-				} else {
-					time.Sleep(2 * time.Second)
-					logrus.Debugf("Enumerating virtual role version ...\n")
-					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
-					if err != nil {
-						logrus.Errorf("marking as bad due to %s\n", err)
-						file, _ := os.Create(badFile)
-						file.Write([]byte(fmt.Sprintf("%s\n", err)))
-						defer file.Close()
-						return
-					}
-					fmt.Printf("\t\t%s\n", fn)
-				}
-			}(ix, role)
+		err := processRoles(maxConcurrent, latest_only, roles, rolesDir, cacheDir)
+		if err != nil {
+			logrus.Errorf("role processing failed: %s\n", err)
+			panic("role processing failed")
 		}
-
-		wg.Wait()
-		close(sem) // close the semaphore channel
-
 	}
 
 	if collections_only || !roles_only {
@@ -222,5 +155,90 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 	}
 
+	return nil
+}
+
+func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string) error {
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
+
+	for ix, role := range roles {
+		wg.Add(1)
+		go func(ix int, role Role) {
+			defer wg.Done()
+
+			badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
+			if utils.IsFile(badFile) {
+				logrus.Debugf("found %s, skipping\n", badFile)
+				return
+			}
+
+			if len(role.SummaryFields.Versions) > 0 {
+				versions := role.SummaryFields.Versions
+				if latest_only {
+					versions, _ = reduceRoleVersionsToHighest(versions)
+				}
+				for _, roleVersion := range versions {
+					logrus.Debugf("Goroutine %d waiting to acquire semaphore\n", ix)
+					sem <- struct{}{} // acquire a slot
+					logrus.Debugf("Goroutine %d acquired semaphore\n", ix)
+
+					go func(role Role, roleVersion RoleVersion) {
+						defer func() {
+							<-sem // release the slot
+							logrus.Debugf("Goroutine %d released semaphore\n", ix)
+						}()
+
+						vBadFile := path.Join(rolesDir, fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name))
+						vBadFile, _ = utils.GetAbsPath(vBadFile)
+						logrus.Debugf("checking for %s\n", vBadFile)
+						if utils.IsFile(vBadFile) {
+							fmt.Printf("found %s, skipping\n", vBadFile)
+							return
+						}
+
+						logrus.Infof("%s not found\n", vBadFile)
+
+						//logrus.Infof("sleeping 1s before GET ...")
+						//time.Sleep(1 * time.Second)
+
+						logrus.Infof("GET %s %s\n", role, roleVersion)
+						fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+						//logrus.Debugf("\t\tnew-file: %s\n", fn)
+						logrus.Infof("sleeping 1s after GET ...")
+						time.Sleep(1 * time.Second)
+
+						if err != nil {
+							// mark as "BAD"
+							logrus.Errorf("\t\tmarking %s. %s as 'bad'\n", role, roleVersion)
+							file, _ := os.Create(vBadFile)
+							file.Write([]byte(fmt.Sprintf("%s\n", err)))
+							defer file.Close()
+						} else {
+							//logrus.Debugf("\t\t%s\n", fn)
+							logrus.Debugf("\t\tsaved: %s\n", fn)
+						}
+
+					}(role, roleVersion)
+				}
+			} else {
+				time.Sleep(2 * time.Second)
+				logrus.Debugf("Enumerating virtual role version ...\n")
+				fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+				if err != nil {
+					logrus.Errorf("marking as bad due to %s\n", err)
+					file, _ := os.Create(badFile)
+					file.Write([]byte(fmt.Sprintf("%s\n", err)))
+					defer file.Close()
+					return
+				}
+				fmt.Printf("\t\t%s\n", fn)
+			}
+		}(ix, role)
+	}
+
+	wg.Wait()
+	close(sem) // close the semaphore channel
 	return nil
 }
