@@ -13,4 +13,5 @@ type CmdKwargs struct {
 	LatestOnly          bool
 	RequirementsFile    string
 	DownloadConcurrency int
+	Verbose             bool
 }

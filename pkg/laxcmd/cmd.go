@@ -15,15 +15,20 @@ import (
 	"github.com/jctanner/lax/internal/roles"
 )
 
+func SetLogLevel(kwargs *types.CmdKwargs) {
+
+}
+
 func Execute() {
 
 	kwargs := types.CmdKwargs{}
 
-	defaultDestDir := utils.ExpandUser("~/.ansible")
-	//dest = defaultDestDir
-	defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
-	//cachedir = defaultCacheDir
+	// pre-set verbose to false ...
+	kwargs.Verbose = false
 
+	// pre-fill the dir options ...
+	defaultDestDir := utils.ExpandUser("~/.ansible")
+	defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
 	kwargs.DestDir = defaultDestDir
 	kwargs.CacheDir = defaultCacheDir
 
@@ -50,6 +55,7 @@ func Execute() {
 		Use:   "createrepo",
 		Short: "Create repository metadata from a directory of artifacts",
 		Run: func(cmd *cobra.Command, args []string) {
+			SetLogLevel(&kwargs)
 			repository.CreateRepo(&kwargs)
 		},
 	}
@@ -66,6 +72,7 @@ func Execute() {
 		Use:   "install",
 		Short: "Install",
 		Run: func(cmd *cobra.Command, args []string) {
+			SetLogLevel(&kwargs)
 			if kwargs.DestDir == "" {
 				kwargs.DestDir = defaultDestDir
 			}
@@ -81,6 +88,7 @@ func Execute() {
 		Use:   "install",
 		Short: "Install",
 		Run: func(cmd *cobra.Command, args []string) {
+			SetLogLevel(&kwargs)
 			if kwargs.DestDir == "" {
 				kwargs.DestDir = defaultDestDir
 			}
@@ -96,6 +104,7 @@ func Execute() {
 		Use:   "galaxy-sync",
 		Short: "Sync content from galaxy into a lax repo directory",
 		Run: func(cmd *cobra.Command, args []string) {
+			SetLogLevel(&kwargs)
 			/*
 			   if collections_only || (!collections_only && !roles_only) {
 			       if !artifacts_only {
@@ -118,18 +127,10 @@ func Execute() {
 		},
 	}
 
-	/*
-		defaultDestDir := utils.ExpandUser("~/.ansible")
-		dest = defaultDestDir
-		//defaultDest, _ = utils.GetAbsPath(defaultDest)
-		defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
-		//defaultCacheDir, _ = utils.GetAbsPath(defaultCacheDir)
-		cachedir = defaultCacheDir
-	*/
-
 	createRepoCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where the files are")
 	createRepoCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just process collections")
 	createRepoCmd.Flags().BoolVar(&kwargs.RolesOnly, "roles", false, "just process roles")
+	createRepoCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
 
 	collectionInstallCmd.Flags().StringVar(&kwargs.Server, "server", "https://github.com", "server")
 	collectionInstallCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
@@ -138,6 +139,7 @@ func Execute() {
 	collectionInstallCmd.Flags().StringVar(&kwargs.DestDir, "dest", defaultDestDir, "where to install")
 	collectionInstallCmd.Flags().StringVar(&kwargs.CacheDir, "cachedir", defaultCacheDir, "where to store intermediate files")
 	collectionInstallCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements-file", "r", "", "requirements file")
+	collectionInstallCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
 
 	roleInstallCmd.Flags().StringVar(&kwargs.Server, "server", "https://github.com", "server")
 	roleInstallCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
@@ -145,6 +147,7 @@ func Execute() {
 	roleInstallCmd.Flags().StringVar(&kwargs.Version, "version", "", "version")
 	roleInstallCmd.Flags().StringVar(&kwargs.CacheDir, "cachedir", defaultCacheDir, "where to store intermediate files")
 	roleInstallCmd.Flags().StringVar(&kwargs.DestDir, "dest", defaultDestDir, "where to install")
+	roleInstallCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
 
 	syncCmd.Flags().StringVar(&kwargs.Server, "server", "https://galaxy.ansible.com", "remote server")
 	syncCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where to store the data")
@@ -156,6 +159,7 @@ func Execute() {
 	syncCmd.Flags().IntVar(&kwargs.DownloadConcurrency, "concurrency", 1, "concurrency")
 	syncCmd.Flags().BoolVar(&kwargs.LatestOnly, "latest", false, "get only the latest version")
 	syncCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements", "r", "", "requirements file")
+	syncCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 

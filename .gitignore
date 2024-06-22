@@ -22,3 +22,6 @@ go.work
 go.work.sum
 
 *.swp
+
+# the built binary
+lax
