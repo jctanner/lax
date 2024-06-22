@@ -6,6 +6,7 @@ import (
 
 	"github.com/jctanner/lax/internal/galaxy_sync"
 	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -14,26 +15,17 @@ import (
 	"github.com/jctanner/lax/internal/roles"
 )
 
-var server string
-var cachedir string
-var dest string
-var collections_only bool
-var artifacts_only bool
-var roles_only bool
-var namespace string
-var name string
-var version string
-var requirements_file string
-
-var download_concurrency int
-var latest_only bool
-
 func Execute() {
 
+	kwargs := types.CmdKwargs{}
+
 	defaultDestDir := utils.ExpandUser("~/.ansible")
-	dest = defaultDestDir
+	//dest = defaultDestDir
 	defaultCacheDir := utils.ExpandUser("~/.ansible/lax_cache")
-	cachedir = defaultCacheDir
+	//cachedir = defaultCacheDir
+
+	kwargs.DestDir = defaultDestDir
+	kwargs.CacheDir = defaultCacheDir
 
 	var rootCmd = &cobra.Command{Use: "cli"}
 
@@ -58,7 +50,7 @@ func Execute() {
 		Use:   "createrepo",
 		Short: "Create repository metadata from a directory of artifacts",
 		Run: func(cmd *cobra.Command, args []string) {
-			repository.CreateRepo(dest, roles_only, collections_only)
+			repository.CreateRepo(&kwargs)
 		},
 	}
 
@@ -74,14 +66,14 @@ func Execute() {
 		Use:   "install",
 		Short: "Install",
 		Run: func(cmd *cobra.Command, args []string) {
-			if dest == "" {
-				dest = defaultDestDir
+			if kwargs.DestDir == "" {
+				kwargs.DestDir = defaultDestDir
 			}
-			if cachedir == "" {
-				cachedir = defaultCacheDir
+			if kwargs.CacheDir == "" {
+				kwargs.CacheDir = defaultCacheDir
 			}
-			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", cachedir, dest)
-			collections.Install(dest, cachedir, server, requirements_file, namespace, name, version, args)
+			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
+			collections.Install(&kwargs, args)
 		},
 	}
 
@@ -89,14 +81,14 @@ func Execute() {
 		Use:   "install",
 		Short: "Install",
 		Run: func(cmd *cobra.Command, args []string) {
-			if dest == "" {
-				dest = defaultDestDir
+			if kwargs.DestDir == "" {
+				kwargs.DestDir = defaultDestDir
 			}
-			if cachedir == "" {
-				cachedir = defaultCacheDir
+			if kwargs.CacheDir == "" {
+				kwargs.CacheDir = defaultCacheDir
 			}
-			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", cachedir, dest)
-			roles.Install(dest, cachedir, server, requirements_file, namespace, name, version, args)
+			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
+			roles.Install(&kwargs, args)
 		},
 	}
 
@@ -116,10 +108,10 @@ func Execute() {
 			       roles.SyncRoles(server, dest)
 			   }
 			*/
-			if server == "" {
-				server = "https://galaxy.ansible.com"
+			if kwargs.Server == "" {
+				kwargs.Server = "https://galaxy.ansible.com"
 			}
-			err := galaxy_sync.GalaxySync(server, dest, download_concurrency, collections_only, roles_only, latest_only, namespace, name, requirements_file)
+			err := galaxy_sync.GalaxySync(&kwargs)
 			if err != nil {
 				fmt.Printf("ERROR: %s\n", err)
 			}
@@ -135,35 +127,35 @@ func Execute() {
 		cachedir = defaultCacheDir
 	*/
 
-	createRepoCmd.Flags().StringVar(&dest, "dest", "", "where the files are")
-	createRepoCmd.Flags().BoolVar(&collections_only, "collections", false, "just process collections")
-	createRepoCmd.Flags().BoolVar(&roles_only, "roles", false, "just process roles")
+	createRepoCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where the files are")
+	createRepoCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just process collections")
+	createRepoCmd.Flags().BoolVar(&kwargs.RolesOnly, "roles", false, "just process roles")
 
-	collectionInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
-	collectionInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
-	collectionInstallCmd.Flags().StringVar(&name, "name", "", "name")
-	collectionInstallCmd.Flags().StringVar(&version, "version", "", "version")
-	collectionInstallCmd.Flags().StringVar(&dest, "dest", defaultDestDir, "where to install")
-	collectionInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
-	collectionInstallCmd.Flags().StringVarP(&requirements_file, "requirements-file", "r", "", "requirements file")
+	collectionInstallCmd.Flags().StringVar(&kwargs.Server, "server", "https://github.com", "server")
+	collectionInstallCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
+	collectionInstallCmd.Flags().StringVar(&kwargs.Name, "name", "", "name")
+	collectionInstallCmd.Flags().StringVar(&kwargs.Version, "version", "", "version")
+	collectionInstallCmd.Flags().StringVar(&kwargs.DestDir, "dest", defaultDestDir, "where to install")
+	collectionInstallCmd.Flags().StringVar(&kwargs.CacheDir, "cachedir", defaultCacheDir, "where to store intermediate files")
+	collectionInstallCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements-file", "r", "", "requirements file")
 
-	roleInstallCmd.Flags().StringVar(&server, "server", "https://github.com", "server")
-	roleInstallCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
-	roleInstallCmd.Flags().StringVar(&name, "name", "", "name")
-	roleInstallCmd.Flags().StringVar(&version, "version", "", "version")
-	roleInstallCmd.Flags().StringVar(&cachedir, "cachedir", defaultCacheDir, "where to store intermediate files")
-	roleInstallCmd.Flags().StringVar(&dest, "dest", defaultDestDir, "where to install")
+	roleInstallCmd.Flags().StringVar(&kwargs.Server, "server", "https://github.com", "server")
+	roleInstallCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
+	roleInstallCmd.Flags().StringVar(&kwargs.Name, "name", "", "name")
+	roleInstallCmd.Flags().StringVar(&kwargs.Version, "version", "", "version")
+	roleInstallCmd.Flags().StringVar(&kwargs.CacheDir, "cachedir", defaultCacheDir, "where to store intermediate files")
+	roleInstallCmd.Flags().StringVar(&kwargs.DestDir, "dest", defaultDestDir, "where to install")
 
-	syncCmd.Flags().StringVar(&server, "server", "https://galaxy.ansible.com", "remote server")
-	syncCmd.Flags().StringVar(&dest, "dest", "", "where to store the data")
-	syncCmd.Flags().BoolVar(&collections_only, "collections", false, "just sync collections")
-	syncCmd.Flags().BoolVar(&roles_only, "roles", false, "just sync roles")
-	syncCmd.Flags().BoolVar(&artifacts_only, "artifacts", false, "just sync the artifacts")
-	syncCmd.Flags().StringVar(&namespace, "namespace", "", "namespace")
-	syncCmd.Flags().StringVar(&name, "name", "", "name")
-	syncCmd.Flags().IntVar(&download_concurrency, "concurrency", 1, "concurrency")
-	syncCmd.Flags().BoolVar(&latest_only, "latest", false, "get only the latest version")
-	syncCmd.Flags().StringVarP(&requirements_file, "requirements", "r", "", "requirements file")
+	syncCmd.Flags().StringVar(&kwargs.Server, "server", "https://galaxy.ansible.com", "remote server")
+	syncCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where to store the data")
+	syncCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just sync collections")
+	syncCmd.Flags().BoolVar(&kwargs.RolesOnly, "roles", false, "just sync roles")
+	syncCmd.Flags().BoolVar(&kwargs.ArtifactsOnly, "artifacts", false, "just sync the artifacts")
+	syncCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
+	syncCmd.Flags().StringVar(&kwargs.Name, "name", "", "name")
+	syncCmd.Flags().IntVar(&kwargs.DownloadConcurrency, "concurrency", 1, "concurrency")
+	syncCmd.Flags().BoolVar(&kwargs.LatestOnly, "latest", false, "get only the latest version")
+	syncCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements", "r", "", "requirements file")
 	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
 

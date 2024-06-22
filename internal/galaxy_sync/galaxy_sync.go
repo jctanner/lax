@@ -8,10 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 )
 
+/*
 func GalaxySync(
+
 	server string,
 	dest string,
 	download_concurrency int,
@@ -21,9 +24,22 @@ func GalaxySync(
 	namespace string,
 	name string,
 	requirements_file string,
-) error {
 
-	fmt.Printf("syncing %s to %s collections:%s roles:%s latest:%s\n", server, dest, collections_only, roles_only, latest_only)
+) error {
+*/
+func GalaxySync(kwargs *types.CmdKwargs) error {
+
+	server := kwargs.Server
+	dest := kwargs.DestDir
+	download_concurrency := kwargs.DownloadConcurrency
+	collections_only := kwargs.CollectionsOnly
+	roles_only := kwargs.RolesOnly
+	latest_only := kwargs.LatestOnly
+	namespace := kwargs.Namespace
+	name := kwargs.Name
+	requirements_file := kwargs.RequirementsFile
+
+	fmt.Printf("syncing %s to %s collections:%t roles:%t latest:%t\n", server, dest, collections_only, roles_only, latest_only)
 
 	// need to make sure the dest exists
 	dest = utils.ExpandUser(dest)

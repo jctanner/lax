@@ -6,10 +6,23 @@ import (
 
 	"github.com/jctanner/lax/internal/packagemanager"
 	"github.com/jctanner/lax/internal/repository"
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 )
 
-func Install(dest string, cachedir string, server string, requirements_file string, namespace string, name string, version string, args []string) error {
+// func Install(dest string, cachedir string, server string, requirements_file string, namespace string, name string, version string, args []string) error {
+func Install(kwargs *types.CmdKwargs, args []string) error {
+
+	dest := kwargs.DestDir
+	cachedir := kwargs.CacheDir
+	server := kwargs.Server
+	requirements_file := kwargs.RequirementsFile
+	if requirements_file != "" {
+		panic("collection install with requirements file not yet implemented!!!")
+	}
+	namespace := kwargs.Namespace
+	name := kwargs.Name
+	version := kwargs.Version
 
 	fmt.Printf("INSTALL2: cachedir:%s dest:%s\n", cachedir, dest)
 

@@ -7,10 +7,16 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
 )
 
-func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
+// func CreateRepo(dest string, roles_only bool, collectios_only bool) error {
+func CreateRepo(kwargs *types.CmdKwargs) error {
+
+	dest := kwargs.DestDir
+	//roles_only := kwargs.RolesOnly
+	//collections_only := kwargs.CollectionsOnly
 
 	fmt.Printf("Create repo in %s\n", dest)
 
