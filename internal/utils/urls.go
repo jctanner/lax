@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 // isURL checks if a given string is a valid URL
@@ -74,20 +76,7 @@ func DownloadFile(urlStr string) (string, error) {
 
 func DownloadBinaryFileToPath(urlStr string, filePath string) (string, error) {
 
-	/*
-	   // Parse the URL
-	   parsedURL, err := url.Parse(urlStr)
-	   if err != nil {
-	       return "", fmt.Errorf("failed to parse URL: %v", err)
-	   }
-
-
-	   // Get the basename of the URL's path
-	   filename := path.Base(parsedURL.Path)
-	   if filename == "" {
-	       return "", fmt.Errorf("invalid URL: no filename in path")
-	   }
-	*/
+	logrus.Debugf("Downloading %s -> %s\n", urlStr, filePath)
 
 	// Make the HTTP GET request
 	resp, err := http.Get(urlStr)
@@ -114,7 +103,7 @@ func DownloadBinaryFileToPath(urlStr string, filePath string) (string, error) {
 		return "", fmt.Errorf("failed to save file: %v", err)
 	}
 
-	fmt.Printf("File downloaded successfully: %s\n", filePath)
+	logrus.Debugf("File downloaded successfully: %s\n", filePath)
 	return filePath, nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type CachedGalaxyClient struct {
@@ -450,7 +451,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 
 	for url != "" {
 		pct := Percentage(collectionCount, collectionsFetched)
-		fmt.Printf("%d|%d %d%% %s\n", collectionCount, collectionsFetched, pct, url)
+		logrus.Infof("%d|%d %d%% %s\n", collectionCount, collectionsFetched, pct, url)
 
 		cacheFile := c.getCacheFilePath(url)
 
@@ -468,7 +469,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 		}
 
 		for _, col := range collectionsResponse.Data {
-			fmt.Printf("col: %s\n", col)
+			logrus.Debugf("process collection result: %s\n", col)
 			// need to get the details page to find the download url ...
 			// /api/v3/plugin/ansible/content/published/collections/index/geerlingguy/mac/versions/4.0.1/
 			detailsUrl := fmt.Sprintf(
@@ -478,7 +479,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 				col.CollectionVersion.Name,
 				col.CollectionVersion.Version,
 			)
-			fmt.Printf("%s\n", detailsUrl)
+			logrus.Debugf("details url: %s\n", detailsUrl)
 
 			detailsCacheFile := c.getCacheFilePath(detailsUrl)
 			var details CollectionVersionDetail
@@ -498,7 +499,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 			}
 
 			//detail,_ := c.fetchCollectionVersionDetail(, detailsUrl, )
-			fmt.Printf("download-url: %s\n", details.DownloadUrl)
+			logrus.Debugf("download-url: %s\n", details.DownloadUrl)
 
 			allCollectionVersionDetails = append(allCollectionVersionDetails, details)
 		}

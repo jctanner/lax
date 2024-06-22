@@ -10,23 +10,9 @@ import (
 
 	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 )
 
-/*
-func GalaxySync(
-
-	server string,
-	dest string,
-	download_concurrency int,
-	collections_only bool,
-	roles_only bool,
-	latest_only bool,
-	namespace string,
-	name string,
-	requirements_file string,
-
-) error {
-*/
 func GalaxySync(kwargs *types.CmdKwargs) error {
 
 	server := kwargs.Server
@@ -39,7 +25,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	name := kwargs.Name
 	requirements_file := kwargs.RequirementsFile
 
-	fmt.Printf("syncing %s to %s collections:%t roles:%t latest:%t\n", server, dest, collections_only, roles_only, latest_only)
+	logrus.Infof("syncing %s to %s collections:%t roles:%t latest:%t\n", server, dest, collections_only, roles_only, latest_only)
 
 	// need to make sure the dest exists
 	dest = utils.ExpandUser(dest)
@@ -121,7 +107,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 				badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
 				if utils.IsFile(badFile) {
-					fmt.Printf("found %s, skipping\n", badFile)
+					logrus.Debugf("found %s, skipping\n", badFile)
 					return
 				}
 
@@ -137,7 +123,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 							vBadFile := path.Join(rolesDir, fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name))
 							vBadFile, _ = utils.GetAbsPath(vBadFile)
-							fmt.Printf("checking for %s\n", vBadFile)
+							logrus.Debugf("checking for %s\n", vBadFile)
 							if utils.IsFile(vBadFile) {
 								fmt.Printf("found %s, skipping\n", vBadFile)
 								return
@@ -145,7 +131,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 							fmt.Printf("%s not found\n", vBadFile)
 							time.Sleep(2 * time.Second)
-							fmt.Printf("GET %s %s\n", role, roleVersion)
+							logrus.Infof("GET %s %s\n", role, roleVersion)
 							fn, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
 							fmt.Printf("\t\t%s\n", fn)
 
@@ -162,7 +148,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 					}
 				} else {
 					time.Sleep(2 * time.Second)
-					fmt.Printf("Enumerating virtual role version ...\n")
+					logrus.Debugf("Enumerating virtual role version ...\n")
 					fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
 					if err != nil {
 						file, _ := os.Create(badFile)
@@ -206,7 +192,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 			}
 		}
 
-		fmt.Printf("%d total collection versions\n", len(collections))
+		logrus.Infof("%d total collection versions\n", len(collections))
 
 		maxConcurrent := download_concurrency
 
@@ -223,7 +209,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 				fn := path.Base(col.Artifact.FileName)
 				fp := path.Join(collectionsDir, fn)
 				if !utils.IsFile(fp) {
-					fmt.Printf("downloading %s\n", col.DownloadUrl)
+					logrus.Infof("call download of %s to %s\n", col.DownloadUrl, fp)
 					utils.DownloadBinaryFileToPath(col.DownloadUrl, fp)
 				}
 

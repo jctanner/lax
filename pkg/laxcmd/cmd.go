@@ -84,7 +84,7 @@ func Execute() {
 			if kwargs.CacheDir == "" {
 				kwargs.CacheDir = defaultCacheDir
 			}
-			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
+			logrus.Debugf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
 			collections.Install(&kwargs, args)
 		},
 	}
@@ -100,7 +100,7 @@ func Execute() {
 			if kwargs.CacheDir == "" {
 				kwargs.CacheDir = defaultCacheDir
 			}
-			fmt.Printf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
+			logrus.Debugf("INSTALL1: cachedir:%s dest:%s\n", kwargs.CacheDir, kwargs.DestDir)
 			roles.Install(&kwargs, args)
 		},
 	}
@@ -127,7 +127,7 @@ func Execute() {
 			}
 			err := galaxy_sync.GalaxySync(&kwargs)
 			if err != nil {
-				fmt.Printf("ERROR: %s\n", err)
+				logrus.Errorf("ERROR: %s\n", err)
 			}
 		},
 	}
