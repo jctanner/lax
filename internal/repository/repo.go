@@ -484,6 +484,7 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			newstring = utils.AddQuotesToDescription(newstring)
 			newstring = utils.AddLiteralBlockScalarToTags(newstring)
 			newstring = utils.FixPlatformVersion(newstring)
+			newstring = utils.RemoveComments(newstring)
 
 			var meta2 types.RoleMeta
 			err = yaml.Unmarshal([]byte(newstring), &meta2)

@@ -139,6 +139,7 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 }
 */
 
+/*
 func AddLiteralBlockScalarToTags(yamlStr string) string {
 	lines := strings.Split(yamlStr, "\n")
 	modifiedLines := []string{}
@@ -161,7 +162,7 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 			} else {
 				inGalaxyTags = false
 				if len(malformedTags) > 0 {
-					modifiedLines = append(modifiedLines, "galaxy_tags: |")
+					modifiedLines = append(modifiedLines, "  galaxy_tags: |")
 					for _, tag := range malformedTags {
 						if tag != "" {
 							modifiedLines = append(modifiedLines, "  "+tag)
@@ -178,12 +179,74 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 
 	// Handle case where galaxy_tags is at the end of the file
 	if len(malformedTags) > 0 {
+		modifiedLines = append(modifiedLines, "  galaxy_tags: |")
+		for _, tag := range malformedTags {
+			if tag != "" {
+				modifiedLines = append(modifiedLines, "  "+tag)
+			}
+		}
+	}
+
+	return strings.Join(modifiedLines, "\n")
+}
+*/
+
+func AddLiteralBlockScalarToTags(yamlStr string) string {
+	lines := strings.Split(yamlStr, "\n")
+	modifiedLines := []string{}
+	inGalaxyTags := false
+	malformedTags := []string{}
+	isList := false
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmedLine, "galaxy_tags:") {
+			inGalaxyTags = true
+			malformedTags = append(malformedTags, strings.TrimSpace(strings.TrimPrefix(trimmedLine, "galaxy_tags:")))
+			continue
+		}
+
+		if inGalaxyTags {
+			if strings.HasPrefix(trimmedLine, "-") {
+				// If any line starts with a hyphen, assume it's a proper list and skip processing
+				isList = true
+				break
+			}
+			match, _ := regexp.MatchString(`^\s*\w+`, trimmedLine)
+			if match {
+				malformedTags = append(malformedTags, strings.TrimSpace(line))
+			} else {
+				inGalaxyTags = false
+				if len(malformedTags) > 0 {
+					modifiedLines = append(modifiedLines, "galaxy_tags: |")
+					for _, tag := range malformedTags {
+						if tag != "" {
+							modifiedLines = append(modifiedLines, "  "+tag)
+						}
+					}
+					malformedTags = []string{}
+				}
+				modifiedLines = append(modifiedLines, line)
+			}
+		} else {
+			modifiedLines = append(modifiedLines, line)
+		}
+	}
+
+	// Handle case where galaxy_tags is at the end of the file
+	if len(malformedTags) > 0 && !isList {
 		modifiedLines = append(modifiedLines, "galaxy_tags: |")
 		for _, tag := range malformedTags {
 			if tag != "" {
 				modifiedLines = append(modifiedLines, "  "+tag)
 			}
 		}
+	}
+
+	// If tags are in a list format, just return the original input
+	if isList {
+		return yamlStr
 	}
 
 	return strings.Join(modifiedLines, "\n")
@@ -234,6 +297,21 @@ func FixPlatformVersion(yamlStr string) string {
 			}
 		}
 
+		modifiedLines = append(modifiedLines, line)
+	}
+
+	return strings.Join(modifiedLines, "\n")
+}
+
+func RemoveComments(yamlStr string) string {
+	lines := strings.Split(yamlStr, "\n")
+	modifiedLines := []string{}
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "#") {
+			continue
+		}
 		modifiedLines = append(modifiedLines, line)
 	}
 
