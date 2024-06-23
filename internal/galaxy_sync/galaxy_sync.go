@@ -161,6 +161,10 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string) error {
 
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	logger.AddHook(&utils.GoroutineIDHook{})
+
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
 
@@ -173,11 +177,12 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 
 			badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
 			if utils.IsFile(badFile) {
-				logrus.Debugf("%s found %s, skipping\n", rname, badFile)
+				logger.Debugf("%s found %s, skipping\n", rname, badFile)
 				return
 			}
 
 			if len(role.SummaryFields.Versions) > 0 {
+				// this role has versions ...
 				versions := role.SummaryFields.Versions
 				if latest_only {
 					versions, _ = reduceRoleVersionsToHighest(versions)
@@ -185,70 +190,98 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 				for _, roleVersion := range versions {
 					rvname := rname + "==" + roleVersion.Name
 
-					logrus.Debugf("%s Goroutine %d waiting to acquire semaphore\n", rvname, ix)
+					logger.Debugf("%s Goroutine %d waiting to acquire semaphore\n", rvname, ix)
 					sem <- struct{}{} // acquire a slot
-					logrus.Debugf("%s Goroutine %d acquired semaphore\n", rvname, ix)
+					logger.Debugf("%s Goroutine %d acquired semaphore\n", rvname, ix)
 
 					go func(role Role, roleVersion RoleVersion) {
 						defer func() {
 							<-sem // release the slot
-							logrus.Debugf("%s Goroutine %d released semaphore\n", rvname, ix)
+							logger.Debugf("%s Goroutine %d released semaphore\n", rvname, ix)
 						}()
 
-						if version != "" && roleVersion.Name != version {
-							logrus.Debugf("%s %s != %s, skipping\n", rvname, roleVersion.Name, version)
-							return
-						}
-
-						vBadFile := path.Join(
-							rolesDir,
-							fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name),
-						)
-						vBadFile, _ = utils.GetAbsPath(vBadFile)
-						logrus.Debugf("%s checking for %s\n", rvname, vBadFile)
-						if utils.IsFile(vBadFile) || utils.IsLink(vBadFile) {
-							logrus.Debugf("%s found %s, skipping\n", rvname, vBadFile)
-							return
-						} else {
-							logrus.Debugf("%s %s not found\n", rvname, vBadFile)
-						}
-
-						logrus.Infof("%s get artifact...\n", rvname)
-						fn, fetched, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-						if fetched && err == nil {
-							logrus.Debugf("%s artifact: %s\n", rvname, fn)
-							logrus.Infof("%s sleeping 1s after GET ...", rvname)
-							time.Sleep(1 * time.Second)
-
-						} else if err != nil {
-							// mark as "BAD"
-							logrus.Errorf("%s marking as 'bad' %s\n", rvname, err)
-							file, _ := os.Create(vBadFile)
-							file.Write([]byte(fmt.Sprintf("%s\n", err)))
-							//defer file.Close()
-							file.Close()
+						err := handleRoleVersion(role, roleVersion, rolesDir, version)
+						if err != nil {
+							logrus.Errorf("%s\n", err)
 						}
 
 					}(role, roleVersion)
 				}
 			} else {
-				//time.Sleep(2 * time.Second)
-				logrus.Debugf("%s Enumerating virtual role version ...\n", rname)
-				fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+				// this role has no versions ...
+				err := handleUnversionedRole(role, rolesDir, cacheDir)
 				if err != nil {
-					logrus.Errorf("%s marking as bad due to %s\n", rname, err)
-					file, _ := os.Create(badFile)
-					file.Write([]byte(fmt.Sprintf("%s\n", err)))
-					//defer file.Close()
-					file.Close()
-					return
+					logrus.Errorf("%s\n", err)
 				}
-				fmt.Printf("%s artifact:%s\n", rname, fn)
 			}
 		}(ix, role)
 	}
 
 	wg.Wait()
 	close(sem) // close the semaphore channel
+	return nil
+}
+
+func handleRoleVersion(role Role, roleVersion RoleVersion, rolesDir string, filterVersion string) error {
+
+	rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
+	rvname := rname + "==" + roleVersion.Name
+
+	if filterVersion != "" && roleVersion.Name != filterVersion {
+		logrus.Debugf("%s %s != %s, skipping\n", rvname, roleVersion.Name, filterVersion)
+		return nil
+	}
+
+	vBadFile := path.Join(
+		rolesDir,
+		fmt.Sprintf("%s-%s-%s.bad", role.GithubUser, role.GithubRepo, roleVersion.Name),
+	)
+	vBadFile, _ = utils.GetAbsPath(vBadFile)
+	logrus.Debugf("%s checking for %s\n", rvname, vBadFile)
+	if utils.IsFile(vBadFile) || utils.IsLink(vBadFile) {
+		logrus.Debugf("%s found %s, skipping\n", rvname, vBadFile)
+		return nil
+	} else {
+		logrus.Debugf("%s %s not found\n", rvname, vBadFile)
+	}
+
+	logrus.Infof("%s get artifact...\n", rvname)
+	fn, fetched, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
+	if fetched && err == nil {
+		logrus.Debugf("%s artifact: %s\n", rvname, fn)
+		logrus.Infof("%s sleeping 1s after GET ...", rvname)
+		time.Sleep(1 * time.Second)
+
+	} else if err != nil {
+		// mark as "BAD"
+		logrus.Errorf("%s marking as 'bad' %s\n", rvname, err)
+		file, _ := os.Create(vBadFile)
+		file.Write([]byte(fmt.Sprintf("%s\n", err)))
+		//defer file.Close()
+		file.Close()
+	}
+
+	return nil
+}
+
+func handleUnversionedRole(role Role, rolesDir string, cacheDir string) error {
+	rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
+	badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
+	if utils.IsFile(badFile) {
+		logrus.Debugf("%s found %s, skipping\n", rname, badFile)
+		return nil
+	}
+
+	logrus.Debugf("%s Enumerating virtual role version ...\n", rname)
+	fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+	if err != nil {
+		logrus.Errorf("%s marking as bad due to %s\n", rname, err)
+		file, _ := os.Create(badFile)
+		file.Write([]byte(fmt.Sprintf("%s\n", err)))
+		//defer file.Close()
+		file.Close()
+		return nil
+	}
+	logrus.Debugf("%s artifact:%s\n", rname, fn)
 	return nil
 }
