@@ -209,7 +209,6 @@ func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Implement custom unmarshaling for GalaxyTags
 func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	fmt.Println("UnmarshalYAML called for GalaxyTags")
 
 	// Try to unmarshal as a list of strings
 	var tags []string

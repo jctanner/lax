@@ -215,25 +215,19 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 
 						logrus.Infof("%s get artifact...\n", rvname)
 						fn, fetched, err := GetRoleVersionArtifact(role, roleVersion, rolesDir)
-						logrus.Debugf("%s artifact: %s\n", rvname, fn)
-						if fetched {
+						if fetched && err == nil {
+							logrus.Debugf("%s artifact: %s\n", rvname, fn)
 							logrus.Infof("%s sleeping 1s after GET ...", rvname)
 							time.Sleep(1 * time.Second)
-						}
 
-						if err != nil {
+						} else if err != nil {
 							// mark as "BAD"
-							logrus.Errorf("%s marking as 'bad'\n", rvname)
+							logrus.Errorf("%s marking as 'bad' %s\n", rvname, err)
 							file, _ := os.Create(vBadFile)
 							file.Write([]byte(fmt.Sprintf("%s\n", err)))
 							//defer file.Close()
 							file.Close()
-						} else {
-							//logrus.Debugf("\t\t%s\n", fn)
-							//logrus.Debugf("\t\tsaved: '%s'\n", fn)
 						}
-
-						//return
 
 					}(role, roleVersion)
 				}
