@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type RoleMeta struct {
@@ -23,7 +24,7 @@ type GalaxyInfo struct {
 	License           RoleLicense      `yaml:"license"`
 	MinAnsibleVersion string           `json:"min_ansible_version"`
 	Platforms         []RolePlatform   `yaml:"platforms"`
-	GalaxyTags        []string         `yaml:"galaxy_tags"`
+	GalaxyTags        []GalaxyTags     `yaml:"galaxy_tags"`
 	Dependencies      []RoleDependency `yaml:"dependencies"`
 }
 
@@ -139,4 +140,98 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	}
 
 	return fmt.Errorf("failed to unmarshal Dependency")
+}
+
+type GalaxyTags []string
+
+/*
+func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
+
+	fmt.Printf("-----------------------------------")
+	fmt.Printf("gt: %s\n", gt)
+	fmt.Printf("-----------------------------------")
+	var tags []string
+
+	*gt = tags
+	return nil
+
+	// Try to unmarshal as a list of strings
+	//var tags []string
+	if err := unmarshal(&tags); err == nil {
+		*gt = tags
+		return nil
+	}
+
+	// If it fails, try to unmarshal as a single string and split it into a list
+	var singleLine string
+	if err := unmarshal(&singleLine); err == nil {
+		*gt = strings.Fields(singleLine) // Split by whitespace
+		return nil
+	}
+
+	// If both attempts fail, return an error
+	return fmt.Errorf("failed to unmarshal GalaxyTags")
+}
+*/
+
+/*
+func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
+
+	fmt.Println("----------------------------------------------")
+	fmt.Println("UnmarshalYAML called for GalaxyTags")
+	fmt.Println("----------------------------------------------")
+
+	// Try to unmarshal as a list of strings
+	var tags []string
+	if err := unmarshal(&tags); err == nil {
+		*gt = tags
+		return nil
+	}
+
+	// If it fails, try to unmarshal as a single string and split it into a list
+	var singleLine string
+	if err := unmarshal(&singleLine); err == nil {
+		// Split by lines and trim spaces
+		lines := strings.Split(singleLine, "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				*gt = append(*gt, line)
+			}
+		}
+		return nil
+	}
+
+	// If both attempts fail, return an error
+	return fmt.Errorf("failed to unmarshal GalaxyTags")
+}
+*/
+
+// Implement custom unmarshaling for GalaxyTags
+func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	fmt.Println("UnmarshalYAML called for GalaxyTags")
+
+	// Try to unmarshal as a list of strings
+	var tags []string
+	if err := unmarshal(&tags); err == nil {
+		*gt = tags
+		return nil
+	}
+
+	// If it fails, try to unmarshal as a multiline string and split it into a list
+	var singleLine string
+	if err := unmarshal(&singleLine); err == nil {
+		// Split by new lines and trim spaces
+		lines := strings.Split(singleLine, "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				*gt = append(*gt, line)
+			}
+		}
+		return nil
+	}
+
+	// If both attempts fail, return an error
+	return fmt.Errorf("failed to unmarshal GalaxyTags")
 }
