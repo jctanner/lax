@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -226,9 +227,18 @@ func handleRoleVersion(role Role, roleVersion RoleVersion, rolesDir string, filt
 
 	rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
 	rvname := rname + "==" + roleVersion.Name
+	lockfile := filepath.Join(rolesDir, fmt.Sprintf("%s-%s-%s.lock", role.GithubUser, role.GithubRepo, roleVersion.Name))
+	if utils.FileExists(lockfile) {
+		logrus.Infof("found %s, skipping", lockfile)
+		return nil
+	}
+	file, _ := os.Create(lockfile)
+	file.Write([]byte(""))
+	file.Close()
 
 	if filterVersion != "" && roleVersion.Name != filterVersion {
 		logrus.Debugf("%s %s != %s, skipping\n", rvname, roleVersion.Name, filterVersion)
+		os.Remove(lockfile)
 		return nil
 	}
 
@@ -240,6 +250,7 @@ func handleRoleVersion(role Role, roleVersion RoleVersion, rolesDir string, filt
 	logrus.Debugf("%s checking for %s\n", rvname, vBadFile)
 	if utils.IsFile(vBadFile) || utils.IsLink(vBadFile) {
 		logrus.Debugf("%s found %s, skipping\n", rvname, vBadFile)
+		os.Remove(lockfile)
 		return nil
 	} else {
 		logrus.Debugf("%s %s not found\n", rvname, vBadFile)
@@ -261,6 +272,7 @@ func handleRoleVersion(role Role, roleVersion RoleVersion, rolesDir string, filt
 		file.Close()
 	}
 
+	os.Remove(lockfile)
 	return nil
 }
 
