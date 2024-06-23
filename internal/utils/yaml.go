@@ -188,3 +188,54 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 
 	return strings.Join(modifiedLines, "\n")
 }
+
+func FixPlatformVersion(yamlStr string) string {
+	lines := strings.Split(yamlStr, "\n")
+	modifiedLines := []string{}
+	inPlatforms := false
+	currentPlatformNameIndent := ""
+	currentVersionIndent := ""
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmedLine, "platforms:") {
+			inPlatforms = true
+			modifiedLines = append(modifiedLines, line)
+			continue
+		}
+
+		if inPlatforms {
+			if strings.HasPrefix(trimmedLine, "- name:") {
+				// Determine the indentation for the name and versions keys
+				leadingSpaces := len(line) - len(strings.TrimLeft(line, " "))
+				currentPlatformNameIndent = strings.Repeat(" ", leadingSpaces+2) // indent + 2 spaces for name level
+				currentVersionIndent = strings.Repeat(" ", leadingSpaces+4)      // indent + 4 spaces for versions level
+				modifiedLines = append(modifiedLines, line)
+				continue
+			}
+
+			if strings.HasPrefix(trimmedLine, "versions:") {
+				modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+				continue
+			}
+
+			// Add the version items with proper indentation
+			if strings.HasPrefix(trimmedLine, "- all") && currentVersionIndent != "" {
+				modifiedLines = append(modifiedLines, currentVersionIndent+"- all")
+				continue
+			}
+
+			// Check for the end of the platforms section
+			if trimmedLine == "" || strings.HasPrefix(trimmedLine, "categories:") {
+				inPlatforms = false
+				currentPlatformNameIndent = ""
+				currentVersionIndent = ""
+			}
+		}
+
+		modifiedLines = append(modifiedLines, line)
+	}
+
+	return strings.Join(modifiedLines, "\n")
+}
