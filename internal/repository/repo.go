@@ -487,17 +487,17 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			newstring = utils.RemoveComments(newstring)
 
 			var meta2 types.RoleMeta
-			err = yaml.Unmarshal([]byte(newstring), &meta2)
+			err2 := yaml.Unmarshal([]byte(newstring), &meta2)
 			if err == nil {
 				return meta2, nil
 			}
 
-			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err2)
 			lines := strings.Split(newstring, "\n")
 			for ix, line := range lines {
 				fmt.Printf("%d:%s\n", ix+1, line)
 			}
-			fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err2)
 			//return meta2, err
 			panic("")
 		}
@@ -505,14 +505,14 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 
 	if err != nil {
 
-		fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+		fmt.Printf("ERROR_1 %s %s %s\n", f, metaFile, err)
 		//fmt.Printf("RAW:\n%s\n", fmap[metaFile])
 		rawstring := string(fmap[metaFile])
 		lines := strings.Split(rawstring, "\n")
 		for ix, line := range lines {
 			fmt.Printf("%d:%s\n", ix+1, line)
 		}
-		fmt.Printf("ERROR %s %s %s\n", f, metaFile, err)
+		fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err)
 		os.Remove(f)
 		panic("")
 		//return meta, err

@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+type rawYAML struct {
+	Data interface{}
+}
+
 type RoleMeta struct {
 	GalaxyInfo GalaxyInfo `yaml:"galaxy_info"`
 }
@@ -120,15 +124,64 @@ func (l *RoleLicense) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Dependency can be either a string or a map
 type RoleDependency struct {
-	Src  string
-	Name string
+	Src     string
+	Name    string
+	Version string
 }
 
+func (r *rawYAML) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	fmt.Printf("***********************************\n")
+	var raw interface{}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	r.Data = raw
+	return nil
+}
 func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
+
+	var raw rawYAML
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+
+	// Print the raw data
+	fmt.Printf("Raw data: %#v\n", raw.Data)
+
+	switch data := raw.Data.(type) {
+	case string:
+		d.Src = data
+		d.Name = data
+		d.Version = data
+	case map[interface{}]interface{}:
+		if src, ok := data["src"].(string); ok {
+			d.Src = src
+		}
+		if name, ok := data["name"].(string); ok {
+			d.Name = name
+		}
+		if version, ok := data["version"].(string); ok {
+			d.Version = version
+		}
+	default:
+		return fmt.Errorf("unexpected type: %T", data)
+	}
+	return nil
+}
+
+/*
+func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
+
+	var raw rawYAML
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+
 	var depString string
 	if err := unmarshal(&depString); err == nil {
 		d.Src = depString
 		d.Name = depString
+		d.Version = depString
 		return nil
 	}
 
@@ -136,11 +189,14 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	if err := unmarshal(&depMap); err == nil {
 		d.Src = depMap["src"]
 		d.Name = depMap["name"]
+		d.Version = depMap["version"]
 		return nil
 	}
 
-	return fmt.Errorf("failed to unmarshal Dependency")
+	fmt.Printf("failed to unmarshal Dependency %s", depString)
+	return fmt.Errorf("failed to unmarshal Dependency %s", depString)
 }
+*/
 
 type GalaxyTags []string
 
