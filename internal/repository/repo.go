@@ -510,7 +510,7 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			newstring = utils.AddLiteralBlockScalarToTags(newstring)
 			//displayLinedYaml(newstring)
 			newstring = utils.FixPlatformVersion(newstring)
-			//displayLinedYaml(newstring)
+			displayLinedYaml(newstring)
 			newstring = utils.RemoveComments(newstring)
 			//displayLinedYaml(newstring)
 

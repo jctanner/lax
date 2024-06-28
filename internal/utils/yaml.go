@@ -294,12 +294,18 @@ func FixPlatformVersion(yamlStr string) string {
 	currentPlatformNameIndent := ""
 	currentVersionIndent := ""
 
-	for _, line := range lines {
+	for ix, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 
-		if strings.HasPrefix(trimmedLine, "platforms:") {
+		// uncomment platforms key?
+
+		if strings.HasPrefix(trimmedLine, "platforms:") || strings.Contains(trimmedLine, "platforms:") {
 			inPlatforms = true
-			modifiedLines = append(modifiedLines, line)
+			//if strings.HasPrefix(trimmedLine, "#") {
+			//	line = strings.ReplaceAll(line, "#", "")
+			//}
+			//modifiedLines = append(modifiedLines, line)
+			modifiedLines = append(modifiedLines, "  platforms:")
 			continue
 		}
 
@@ -310,6 +316,19 @@ func FixPlatformVersion(yamlStr string) string {
 				currentPlatformNameIndent = strings.Repeat(" ", leadingSpaces+2) // indent + 2 spaces for name level
 				currentVersionIndent = strings.Repeat(" ", leadingSpaces+4)      // indent + 4 spaces for versions level
 				modifiedLines = append(modifiedLines, line)
+
+				// only works if they uncommented the line ...
+				if !strings.Contains(lines[ix+1], "versions:") && !strings.Contains(lines[ix+2], "versions:") {
+					modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+				} else {
+					// check for comments ...
+					if strings.Contains(lines[ix+1], "versions:") && strings.Contains(lines[ix+1], "#") {
+						modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+					} else if strings.Contains(lines[ix+2], "versions:") && strings.Contains(lines[ix+2], "#") {
+						modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+					}
+				}
+
 				continue
 			}
 
@@ -334,6 +353,12 @@ func FixPlatformVersion(yamlStr string) string {
 
 		modifiedLines = append(modifiedLines, line)
 	}
+
+	/*
+		for ix, ml := range modifiedLines {
+			fmt.Printf("ML(%d): %s\n", ix, ml)
+		}
+	*/
 
 	return strings.Join(modifiedLines, "\n")
 }
