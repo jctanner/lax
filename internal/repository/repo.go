@@ -8,6 +8,7 @@ import (
 
 	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 
 	"encoding/gob"
 	"encoding/json"
@@ -451,6 +452,14 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 	})
 }
 
+func displayLinedYaml(rawyaml string) {
+	fmt.Printf("===========================")
+	lines := strings.Split(rawyaml, "\n")
+	for ix, line := range lines {
+		fmt.Printf("%d:%s\n", ix+1, line)
+	}
+}
+
 func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 
 	var meta types.RoleMeta
@@ -476,30 +485,55 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 	err = yaml.Unmarshal(fmap[metaFile], &meta)
 
 	if err != nil {
+		fmt.Printf("ERROR_0 %s %s %s\n", f, metaFile, err)
+		rawstring := string(fmap[metaFile])
+		/*
+			lines := strings.Split(rawstring, "\n")
+				for ix, line := range lines {
+					fmt.Printf("%d:%s\n", ix+1, line)
+				}
+		*/
+		displayLinedYaml(rawstring)
+		logrus.Warnf("unmarshalling error %s %s %s\n", f, metaFile, err)
+	}
+
+	if err != nil {
 		// fix indentation if possible ...
 		if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") || strings.Contains(err.Error(), " cannot unmarshal !!str") || true {
 			fmt.Printf("FIXING YAML IN MEMORY...\n")
 			rawstring := string(fmap[metaFile])
+			//displayLinedYaml(rawstring)
 			newstring, _ := utils.FixGalaxyIndentation(rawstring)
+			//displayLinedYaml(newstring)
 			newstring = utils.AddQuotesToDescription(newstring)
+			//displayLinedYaml(newstring)
 			newstring = utils.AddLiteralBlockScalarToTags(newstring)
+			//displayLinedYaml(newstring)
 			newstring = utils.FixPlatformVersion(newstring)
+			//displayLinedYaml(newstring)
 			newstring = utils.RemoveComments(newstring)
+			//displayLinedYaml(newstring)
+
+			displayLinedYaml(newstring)
+			//fmt.Println("trying to unmarshall munged data ...")
 
 			var meta2 types.RoleMeta
 			err2 := yaml.Unmarshal([]byte(newstring), &meta2)
-			if err == nil {
+			if err2 == nil {
 				return meta2, nil
 			}
 
-			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err2)
-			lines := strings.Split(newstring, "\n")
-			for ix, line := range lines {
-				fmt.Printf("%d:%s\n", ix+1, line)
-			}
-			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err2)
+			//fmt.Printf("ERROR_2 %s %s (%s)\n", f, metaFile, err2)
+			/*
+				lines := strings.Split(newstring, "\n")
+				for ix, line := range lines {
+					fmt.Printf("%d:%s\n", ix+1, line)
+				}
+			*/
+			displayLinedYaml(newstring)
+			fmt.Printf("ERROR_2 %s %s [[[%s]]]\n", f, metaFile, err2)
 			//return meta2, err
-			panic("")
+			panic("COUNT NOT UNMARSHALL")
 		}
 	}
 

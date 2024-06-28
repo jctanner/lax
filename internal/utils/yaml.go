@@ -15,6 +15,7 @@ func countLeadingSpaces(line string) int {
 Some meta/main.yml files have improperly independented "dependencies" keys.
 */
 func FixGalaxyIndentation(yamlData string) (string, error) {
+
 	lines := strings.Split(yamlData, "\n")
 	galaxyInfoIndentation := -1
 	indentationCount := make(map[int]int)
@@ -191,6 +192,12 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 }
 */
 
+func countLeadingWhitespaces(s string) int {
+	re := regexp.MustCompile(`^\s*`)
+	match := re.FindString(s)
+	return len(match)
+}
+
 func AddLiteralBlockScalarToTags(yamlStr string) string {
 	lines := strings.Split(yamlStr, "\n")
 	modifiedLines := []string{}
@@ -198,13 +205,28 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 	malformedTags := []string{}
 	isList := false
 
+	keyWhiteSpaceCount := 0
+	leadingWhitespace := ""
+	itemWhiteSpace := ""
+
 	for _, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 
+		//fmt.Printf("%s\n", line)
+
 		if strings.HasPrefix(trimmedLine, "galaxy_tags:") {
+			keyWhiteSpaceCount = countLeadingSpaces(line)
+			leadingWhitespace = strings.Repeat(" ", keyWhiteSpaceCount)
+			itemWhiteSpace = strings.Repeat("  ", keyWhiteSpaceCount)
 			inGalaxyTags = true
 			malformedTags = append(malformedTags, strings.TrimSpace(strings.TrimPrefix(trimmedLine, "galaxy_tags:")))
 			continue
+		}
+
+		// need to break if we find a new keyword ...
+		//fmt.Printf("%b: %s\n", inGalaxyTags, line)
+		if strings.Contains(line, "dependencies:") {
+			inGalaxyTags = false
 		}
 
 		if inGalaxyTags {
@@ -219,10 +241,16 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 			} else {
 				inGalaxyTags = false
 				if len(malformedTags) > 0 {
-					modifiedLines = append(modifiedLines, "galaxy_tags: |")
+					//modifiedLines = append(modifiedLines, leadingWhitespace+"galaxy_tags: |")
+					modifiedLines = append(modifiedLines, leadingWhitespace+"galaxy_tags:")
 					for _, tag := range malformedTags {
 						if tag != "" {
-							modifiedLines = append(modifiedLines, "  "+tag)
+							cleanTag := strings.TrimSpace(tag)
+							if strings.HasPrefix(cleanTag, "-") {
+								modifiedLines = append(modifiedLines, itemWhiteSpace+cleanTag)
+							} else {
+								modifiedLines = append(modifiedLines, itemWhiteSpace+"- "+cleanTag)
+							}
 						}
 					}
 					malformedTags = []string{}
@@ -236,10 +264,17 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 
 	// Handle case where galaxy_tags is at the end of the file
 	if len(malformedTags) > 0 && !isList {
-		modifiedLines = append(modifiedLines, "galaxy_tags: |")
+		//modifiedLines = append(modifiedLines, leadingWhitespace+"galaxy_tags: |")
+		modifiedLines = append(modifiedLines, leadingWhitespace+"galaxy_tags:")
 		for _, tag := range malformedTags {
 			if tag != "" {
-				modifiedLines = append(modifiedLines, "  "+tag)
+				//modifiedLines = append(modifiedLines, itemWhiteSpace+tag)
+				cleanTag := strings.TrimSpace(tag)
+				if strings.HasPrefix(cleanTag, "-") {
+					modifiedLines = append(modifiedLines, itemWhiteSpace+cleanTag)
+				} else {
+					modifiedLines = append(modifiedLines, itemWhiteSpace+"- "+cleanTag)
+				}
 			}
 		}
 	}
@@ -249,7 +284,7 @@ func AddLiteralBlockScalarToTags(yamlStr string) string {
 		return yamlStr
 	}
 
-	return strings.Join(modifiedLines, "\n")
+	return strings.Join(modifiedLines, "\n") + "\n"
 }
 
 func FixPlatformVersion(yamlStr string) string {

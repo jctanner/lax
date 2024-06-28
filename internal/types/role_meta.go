@@ -129,15 +129,6 @@ type RoleDependency struct {
 	Version string
 }
 
-func (r *rawYAML) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	fmt.Printf("***********************************\n")
-	var raw interface{}
-	if err := unmarshal(&raw); err != nil {
-		return err
-	}
-	r.Data = raw
-	return nil
-}
 func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	var raw rawYAML
@@ -266,9 +257,18 @@ func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Implement custom unmarshaling for GalaxyTags
 func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
+	//fmt.Println("************************************")
+
+	var raw rawYAML
+	if err := unmarshal(&raw); err != nil {
+		fmt.Print("ERROR %s\n", err)
+		return err
+	}
+
 	// Try to unmarshal as a list of strings
 	var tags []string
 	if err := unmarshal(&tags); err == nil {
+		//fmt.Printf("A: %s\n", tags)
 		*gt = tags
 		return nil
 	}
@@ -278,6 +278,7 @@ func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&singleLine); err == nil {
 		// Split by new lines and trim spaces
 		lines := strings.Split(singleLine, "\n")
+		//fmt.Printf("B: %s\n", lines)
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
 			if line != "" {
@@ -289,4 +290,16 @@ func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	// If both attempts fail, return an error
 	return fmt.Errorf("failed to unmarshal GalaxyTags")
+}
+
+func (r *rawYAML) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	//fmt.Printf("***********************************\n")
+	var raw interface{}
+	if err := unmarshal(&raw); err != nil {
+		//fmt.Print("ERROR DOING RAW UNMARSHALL\n")
+		return err
+	}
+	//fmt.Printf("RAW: %s\n", raw)
+	r.Data = raw
+	return nil
 }
