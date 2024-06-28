@@ -169,6 +169,10 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 		}
 	}
 
+	if !utils.IsDir(repoPath) {
+		panic(fmt.Sprintf("%s failed to clone to %s for some unknown reason", repoUrl, repoPath))
+	}
+
 	if role.GithubBranch != "" {
 		logrus.Debugf("checkout %s branch in %s\n", role.GithubBranch, repoPath)
 		utils.CheckoutBranch(repoPath, role.GithubBranch)
