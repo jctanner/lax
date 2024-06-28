@@ -530,6 +530,7 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			}
 
 			newstring = utils.ReplaceDependencyRoleWithName(newstring)
+			newstring = utils.RemoveDependenciesLiteralIfNoDeps(newstring)
 
 			newstring = utils.RemoveComments(newstring)
 			//displayLinedYaml(newstring)

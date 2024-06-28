@@ -410,3 +410,44 @@ func ReplaceDependencyRoleWithName(yamlStr string) string {
 
 	return result.String()
 }
+
+func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
+
+	// find the dependencies section?
+	// does it have any non-empty traling lines?
+	// does it have a trailing "|"?
+
+	lines := strings.Split(yamlStr, "\n")
+
+	hasLiteral := false
+	hasDeps := false
+	dependencyKeyIndex := 0
+
+	for ix, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmedLine, "dependencies:") || strings.Contains(trimmedLine, "dependencies:") {
+			dependencyKeyIndex = ix
+
+			if strings.Contains(trimmedLine, "|") {
+				hasLiteral = true
+			}
+
+			if len(lines) > ix {
+				if strings.TrimSpace(lines[ix+1]) != "" {
+					hasDeps = true
+				}
+			}
+
+			break
+		}
+
+	}
+
+	if !hasDeps && hasLiteral {
+		fixme := lines[dependencyKeyIndex]
+		lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
+	}
+
+	return strings.Join(lines, "\n")
+}
