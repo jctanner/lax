@@ -20,6 +20,31 @@ type FileInfo struct {
 	Type string
 }
 
+// cache known files on disk
+type FileStore struct {
+	Files []FileInfo
+}
+
+func (fs *FileStore) AddFile(file FileInfo) {
+	fs.Files = append(fs.Files, file)
+}
+
+// FindByGlob finds and returns all FileInfo objects with paths matching the given glob pattern
+func (fs *FileStore) FindByGlob(pattern string) []string {
+	var matches []string
+	for _, file := range fs.Files {
+		matched, err := filepath.Match(pattern, file.Path)
+		if err != nil {
+			fmt.Println("Error matching pattern:", err)
+			continue
+		}
+		if matched {
+			matches = append(matches, file.Path)
+		}
+	}
+	return matches
+}
+
 func ExpandUser(path string) string {
 	if strings.HasPrefix(path, "~") {
 		homeDir, err := os.UserHomeDir()
@@ -736,6 +761,8 @@ func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 		if err != nil {
 			return err
 		}
+
+		fmt.Printf("walk: %s\n", path)
 
 		// Skip directories and only check files
 		if !info.IsDir() {

@@ -124,7 +124,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 	return "", true, nil
 }
 
-func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (string, error) {
+func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *utils.FileStore) (string, error) {
 
 	logrus.Debugf("make role version artifact for %s\n", role)
 
@@ -142,7 +142,11 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string) (strin
 	// short circuit if the role has a commit and there's a relevant tarball
 	globPattern := fmt.Sprintf("%s-%s-*-%s.tar.gz", role.SummaryFields.Namespace.Name, role.Name, role.Commit)
 	logrus.Debugf("looking for files matching %s\n", globPattern)
-	matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
+
+	//matches, _ := utils.FindMatchingFiles(rolesDir, globPattern)
+	matches := fc.FindByGlob(globPattern)
+	//panic("fixme: test")
+
 	logrus.Debugf("%s\n", matches)
 	if len(matches) > 0 {
 		logrus.Debugf("no matches found.")

@@ -69,6 +69,20 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 
 	if roles_only || !collections_only {
 
+		// cache ondisk filenames ...
+		fc := utils.FileStore{}
+		tarBalls, ferr := utils.FindMatchingFiles(rolesDir, "*.tar.gz")
+		if ferr != nil {
+			print("%s\n", ferr)
+		}
+		fmt.Printf("%s\n", tarBalls)
+		for _, tarBall := range tarBalls {
+			print(tarBall)
+			fc.AddFile(utils.FileInfo{Type: "regular file", Path: tarBall})
+		}
+
+		//panic("fixme: test")
+
 		var roles []Role
 
 		if requirements_file == "" {
@@ -96,7 +110,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 		logrus.Infof("%d total roles\n", len(roles))
 
 		maxConcurrent := download_concurrency
-		err := processRoles(maxConcurrent, latest_only, roles, rolesDir, cacheDir, version)
+		err := processRoles(maxConcurrent, latest_only, roles, rolesDir, cacheDir, version, &fc)
 		if err != nil {
 			logrus.Errorf("role processing failed: %s\n", err)
 			panic("role processing failed")
@@ -160,7 +174,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	return nil
 }
 
-func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string) error {
+func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string, fc *utils.FileStore) error {
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
@@ -193,7 +207,7 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 
 					logger.Debugf("%s Goroutine %d waiting to acquire semaphore\n", rvname, ix)
 					sem <- struct{}{} // acquire a slot
-					logger.Debugf("%s Goroutine %d acquired semaphore\n", rvname, ix)
+					logger.Debugf("%s Goroutine %d acquirfned semaphore\n", rvname, ix)
 
 					go func(role Role, roleVersion RoleVersion) {
 						defer func() {
@@ -210,7 +224,7 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 				}
 			} else {
 				// this role has no versions ...
-				err := handleUnversionedRole(role, rolesDir, cacheDir)
+				err := handleUnversionedRole(role, rolesDir, cacheDir, fc)
 				if err != nil {
 					logrus.Errorf("%s\n", err)
 				}
@@ -276,7 +290,7 @@ func handleRoleVersion(role Role, roleVersion RoleVersion, rolesDir string, filt
 	return nil
 }
 
-func handleUnversionedRole(role Role, rolesDir string, cacheDir string) error {
+func handleUnversionedRole(role Role, rolesDir string, cacheDir string, fc *utils.FileStore) error {
 	rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
 	badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
 	if utils.IsFile(badFile) {
@@ -285,7 +299,7 @@ func handleUnversionedRole(role Role, rolesDir string, cacheDir string) error {
 	}
 
 	logrus.Debugf("%s Enumerating virtual role version ...\n", rname)
-	fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir)
+	fn, err := MakeRoleVersionArtifact(role, rolesDir, cacheDir, fc)
 	if err != nil {
 		logrus.Errorf("%s marking as bad due to %s\n", rname, err)
 		file, _ := os.Create(badFile)
