@@ -137,6 +137,7 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 
 	switch data := raw.(type) {
 	case string:
+		//data = strings.Replace(data, "role:", "name:", 1)
 		d.Src = data
 		d.Name = data
 		d.Version = ""
@@ -146,8 +147,6 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 		}
 		if name, ok := data["name"].(string); ok {
 			d.Name = name
-		} else if role, ok := data["role"].(string); ok {
-			d.Name = role
 		}
 		if version, ok := data["version"].(string); ok {
 			d.Version = version

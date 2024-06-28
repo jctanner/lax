@@ -452,11 +452,21 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 	})
 }
 
+/*
 func displayLinedYaml(rawyaml string) {
 	fmt.Printf("===========================\n")
 	lines := strings.Split(rawyaml, "\n")
 	for ix, line := range lines {
 		fmt.Printf("%d:%s\n", ix+1, line)
+	}
+}
+*/
+
+func displayLinedYaml(text string) {
+	fmt.Printf("===========================\n")
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		fmt.Printf("%3d: %q\n", i+1, line)
 	}
 }
 
@@ -502,6 +512,10 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 		if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") || strings.Contains(err.Error(), " cannot unmarshal !!str") || true {
 			fmt.Printf("FIXING YAML IN MEMORY...\n")
 			rawstring := string(fmap[metaFile])
+
+			// these were hiding in someone's depependency definition ...
+			rawstring = strings.ReplaceAll(rawstring, "\u00a0", " ")
+
 			//displayLinedYaml(rawstring)
 			newstring, _ := utils.FixGalaxyIndentation(rawstring)
 			//displayLinedYaml(newstring)
@@ -514,6 +528,8 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 				newstring = utils.FixPlatformVersion(newstring)
 				displayLinedYaml(newstring)
 			}
+
+			newstring = utils.ReplaceDependencyRoleWithName(newstring)
 
 			newstring = utils.RemoveComments(newstring)
 			//displayLinedYaml(newstring)

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"regexp"
 	"strings"
@@ -382,4 +383,30 @@ func RemoveComments(yamlStr string) string {
 	}
 
 	return strings.Join(modifiedLines, "\n")
+}
+
+func ReplaceDependencyRoleWithName(yamlStr string) string {
+	var result strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(yamlStr))
+
+	inDependencies := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmedLine, "dependencies:") {
+			inDependencies = true
+		} else if inDependencies && (trimmedLine == "" || !strings.HasPrefix(trimmedLine, "-")) {
+			inDependencies = false
+		}
+
+		if inDependencies && strings.Contains(trimmedLine, "role:") {
+			line = strings.Replace(line, "role:", "name:", 1)
+		}
+
+		result.WriteString(line + "\n")
+	}
+
+	return result.String()
 }
