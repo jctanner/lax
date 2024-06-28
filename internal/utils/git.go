@@ -8,6 +8,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+/*
 // cloneRepo clones a Git repository to the specified path
 func CloneRepo(url, path string) error {
 	// Ensure the target directory exists
@@ -23,6 +24,33 @@ func CloneRepo(url, path string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to clone repository: %v", err)
+	}
+
+	return nil
+}
+*/
+
+// CloneRepo clones a Git repository and ensures it's fully cloned
+func CloneRepo(url, path string) error {
+	// Ensure the target directory exists
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	// Clone the repository
+	repo, err := git.PlainClone(path, false, &git.CloneOptions{
+		URL:      url,
+		Progress: os.Stdout,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to clone repository: %v", err)
+	}
+
+	// Verify the repository has at least one commit
+	headRef, err := repo.Head()
+	if err != nil || headRef.Hash() == plumbing.ZeroHash {
+		return fmt.Errorf("cloned repository is empty or invalid")
 	}
 
 	return nil
