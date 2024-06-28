@@ -189,8 +189,15 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 		formattedDate := date.Format("20060102150405")
 		logrus.Debugf("3. %s == %s\n", role.Commit, formattedDate)
 	*/
-	formattedDate, _ := utils.GetCommitDate(repoPath, role.Commit)
+	formattedDate, derr := utils.GetCommitDate(repoPath, role.Commit)
+	if derr != nil {
+		panic(fmt.Sprintf("%s", derr))
+	}
 	logrus.Debugf("3. %s == %s\n", role.Commit, formattedDate)
+
+	if formattedDate == "" {
+		panic(fmt.Sprintf("bad date for '%s' '%s'", repoPath, role.Commit))
+	}
 
 	//panic("")
 
