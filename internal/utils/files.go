@@ -11,8 +11,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-
-	"github.com/sirupsen/logrus"
 	//"encoding/json"
 )
 
@@ -687,6 +685,7 @@ func FindMatchingFiles(directory, pattern string) ([]string, error) {
 }
 */
 
+/*
 func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 	searchPattern := filepath.Join(directory, pattern)
 	logrus.Debugf("%s search starting\n", searchPattern)
@@ -705,6 +704,66 @@ func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 			matches = append(matches, string(line))
 		}
 	}
+	return matches, nil
+}
+*/
+
+func FindMatchingFiles(directory string, pattern string) ([]string, error) {
+
+	maxDepth := 1
+
+	// Check if the directory exists
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		return nil, fmt.Errorf("directory does not exist: %v", directory)
+	}
+
+	// Helper function to calculate depth
+	calculateDepth := func(base, target string) int {
+		base = filepath.Clean(base)
+		target = filepath.Clean(target)
+		if base == target {
+			return 0
+		}
+		rel, err := filepath.Rel(base, target)
+		if err != nil {
+			return -1
+		}
+		return len(strings.Split(rel, string(os.PathSeparator)))
+	}
+
+	var matches []string
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and only check files
+		if !info.IsDir() {
+			// Check the depth of the file
+			if calculateDepth(directory, path) <= maxDepth {
+				// Check if the file matches the pattern
+				matched, err := filepath.Match(pattern, filepath.Base(path))
+				if err != nil {
+					return err
+				}
+				if matched {
+					matches = append(matches, path)
+				}
+			}
+		}
+
+		// Skip directories that exceed the max depth
+		if info.IsDir() && calculateDepth(directory, path) >= maxDepth {
+			return filepath.SkipDir
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return matches, nil
 }
 
