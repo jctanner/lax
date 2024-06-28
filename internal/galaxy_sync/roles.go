@@ -191,7 +191,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 	*/
 	formattedDate, derr := utils.GetCommitDate(repoPath, role.Commit)
 	if derr != nil {
-		panic(fmt.Sprintf("%s", derr))
+		panic(fmt.Sprintf("failed to get date from '%s' '%s'--> %s", repoPath, role.Commit, derr))
 	}
 	logrus.Debugf("3. %s == %s\n", role.Commit, formattedDate)
 
