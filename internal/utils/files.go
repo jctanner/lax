@@ -802,3 +802,21 @@ func CreateTempDirectory() (string, error) {
 	}
 	return tempDir, nil
 }
+
+func IsDirEmpty(dirPath string) (bool, error) {
+	// Open the directory
+	f, err := os.Open(dirPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to open directory: %v", err)
+	}
+	defer f.Close()
+
+	// Read directory contents
+	entries, err := f.Readdirnames(1) // Read at least one entry
+	if err != nil && err != io.EOF {
+		return false, fmt.Errorf("failed to read directory: %v", err)
+	}
+
+	// If entries slice is empty, directory is empty
+	return len(entries) == 0, nil
+}
