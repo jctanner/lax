@@ -6,7 +6,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/jctanner/lax/internal/repository"
 	"github.com/jctanner/lax/internal/utils"
@@ -182,12 +181,16 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 	}
 
 	logrus.Debugf("get date for %s from %s\n", role.Commit, repoPath)
-	rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
-	logrus.Debugf("%s == %s\n", role.Commit, rawDate)
-	date, _ := time.Parse("2006-01-02 15:04:05 -0700", rawDate)
-	logrus.Debugf("%s == %s\n", role.Commit, date)
-	formattedDate := date.Format("20060102150405")
-	logrus.Debugf("%s == %s\n", role.Commit, formattedDate)
+	/*
+		rawDate, _ := utils.GetCommitDate(repoPath, role.Commit)
+		logrus.Debugf("1. %s == %s\n", role.Commit, rawDate)
+		date, _ := time.Parse("2006-01-02T15:04:05 -0700", rawDate)
+		logrus.Debugf("2. %s == %s\n", role.Commit, date)
+		formattedDate := date.Format("20060102150405")
+		logrus.Debugf("3. %s == %s\n", role.Commit, formattedDate)
+	*/
+	formattedDate, _ := utils.GetCommitDate(repoPath, role.Commit)
+	logrus.Debugf("3. %s == %s\n", role.Commit, formattedDate)
 
 	//panic("")
 

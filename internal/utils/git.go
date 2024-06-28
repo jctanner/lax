@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/go-git/go-git/v5" // with go modules disabled
 	"github.com/go-git/go-git/v5/plumbing"
@@ -89,7 +88,8 @@ func GetCommitDate(repoPath string, commitHash string) (string, error) {
 
 	// Get the commit date
 	commitDate := commit.Committer.When
-	return commitDate.Format(time.RFC3339), nil
+	//return commitDate.Format(time.RFC3339), nil
+	return commitDate.Format("20060102150405"), nil
 }
 
 /*
