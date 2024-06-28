@@ -762,7 +762,7 @@ func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 			return err
 		}
 
-		fmt.Printf("walk: %s\n", path)
+		//fmt.Printf("walk: %s\n", path)
 
 		// Skip directories and only check files
 		if !info.IsDir() {

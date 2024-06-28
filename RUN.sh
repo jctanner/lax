@@ -3,4 +3,4 @@
 #GO=/opt/go/go/bin/go
 GO=$(which go)
 
-$GO run cmd/lax/main.go $@
+$GO run -race cmd/lax/main.go $@

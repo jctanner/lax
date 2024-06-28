@@ -75,9 +75,9 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 		if ferr != nil {
 			print("%s\n", ferr)
 		}
-		fmt.Printf("%s\n", tarBalls)
+		//fmt.Printf("%s\n", tarBalls)
 		for _, tarBall := range tarBalls {
-			print(tarBall)
+			//print(tarBall)
 			fc.AddFile(utils.FileInfo{Type: "regular file", Path: tarBall})
 		}
 

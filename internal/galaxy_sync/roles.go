@@ -159,7 +159,7 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 	gitDir := path.Join(cacheDir, "git")
 	utils.MakeDirs(gitDir)
 	repoPath := path.Join(gitDir, fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo))
-	logrus.Debugf("checking for %s filepath\n", repoPath)
+	//logrus.Debugf("checking for %s filepath\n", repoPath)
 	if !utils.IsDir(repoPath) {
 		logrus.Infof("clone %s -> %s\n", repoUrl, repoPath)
 		err := utils.CloneRepo(repoUrl, repoPath)
