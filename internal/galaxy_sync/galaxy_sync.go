@@ -174,6 +174,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	return nil
 }
 
+/*
 func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string, fc *utils.FileStore) error {
 
 	logger := logrus.New()
@@ -221,6 +222,66 @@ func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir st
 						}
 
 					}(role, roleVersion)
+				}
+			} else {
+				// this role has no versions ...
+				err := handleUnversionedRole(role, rolesDir, cacheDir, fc)
+				if err != nil {
+					logrus.Errorf("%s\n", err)
+				}
+			}
+		}(ix, role)
+	}
+
+	wg.Wait()
+	close(sem) // close the semaphore channel
+	return nil
+}
+*/
+
+func processRoles(maxConcurrent int, latest_only bool, roles []Role, rolesDir string, cacheDir string, version string, fc *utils.FileStore) error {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	logger.AddHook(&utils.GoroutineIDHook{})
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrent) // semaphore to limit concurrency
+
+	for ix, role := range roles {
+		wg.Add(1)
+		go func(ix int, role Role) {
+			defer wg.Done()
+
+			sem <- struct{}{} // acquire a slot at the outer level
+			defer func() {
+				<-sem // release the slot at the outer level
+			}()
+
+			rname := fmt.Sprintf("%s.%s", role.GithubUser, role.GithubRepo)
+
+			badFile := path.Join(rolesDir, fmt.Sprintf("%s-%s.bad", role.GithubUser, role.GithubRepo))
+			if utils.IsFile(badFile) {
+				logger.Debugf("%s found %s, skipping\n", rname, badFile)
+				return
+			}
+
+			if len(role.SummaryFields.Versions) > 0 {
+				// this role has versions ...
+				versions := role.SummaryFields.Versions
+				if latest_only {
+					versions, _ = reduceRoleVersionsToHighest(versions)
+				}
+				for _, roleVersion := range versions {
+					rvname := rname + "==" + roleVersion.Name
+
+					logger.Debugf("%s Goroutine %d waiting to acquire semaphore\n", rvname, ix)
+					// No need to acquire semaphore here again
+					logger.Debugf("%s Goroutine %d acquired semaphore\n", rvname, ix)
+
+					err := handleRoleVersion(role, roleVersion, rolesDir, version)
+					if err != nil {
+						logrus.Errorf("%s\n", err)
+					}
 				}
 			} else {
 				// this role has no versions ...
