@@ -323,9 +323,15 @@ func FixPlatformVersion(yamlStr string) string {
 				} else {
 					// check for comments ...
 					if strings.Contains(lines[ix+1], "versions:") && strings.Contains(lines[ix+1], "#") {
-						modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+						nextLine := strings.TrimSpace(lines[ix+2])
+						if nextLine != "" {
+							modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+						}
 					} else if strings.Contains(lines[ix+2], "versions:") && strings.Contains(lines[ix+2], "#") {
-						modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+						nextLine := strings.TrimSpace(lines[ix+3])
+						if nextLine != "" {
+							modifiedLines = append(modifiedLines, currentPlatformNameIndent+"versions:")
+						}
 					}
 				}
 

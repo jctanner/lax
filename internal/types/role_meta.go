@@ -130,6 +130,36 @@ type RoleDependency struct {
 }
 
 func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var raw interface{}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+
+	switch data := raw.(type) {
+	case string:
+		d.Src = data
+		d.Name = data
+		d.Version = ""
+	case map[interface{}]interface{}:
+		if src, ok := data["src"].(string); ok {
+			d.Src = src
+		}
+		if name, ok := data["name"].(string); ok {
+			d.Name = name
+		} else if role, ok := data["role"].(string); ok {
+			d.Name = role
+		}
+		if version, ok := data["version"].(string); ok {
+			d.Version = version
+		}
+	default:
+		return fmt.Errorf("unexpected type: %T", data)
+	}
+	return nil
+}
+
+/*
+func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	var raw rawYAML
 	if err := unmarshal(&raw); err != nil {
@@ -151,6 +181,9 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 		if name, ok := data["name"].(string); ok {
 			d.Name = name
 		}
+		if role, ok := data["role"].(string); ok {
+			d.Name = role
+		}
 		if version, ok := data["version"].(string); ok {
 			d.Version = version
 		}
@@ -159,6 +192,7 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	}
 	return nil
 }
+*/
 
 /*
 func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {

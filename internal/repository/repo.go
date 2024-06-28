@@ -453,7 +453,7 @@ func SortInstallSpecs(specs *[]utils.InstallSpec) {
 }
 
 func displayLinedYaml(rawyaml string) {
-	fmt.Printf("===========================")
+	fmt.Printf("===========================\n")
 	lines := strings.Split(rawyaml, "\n")
 	for ix, line := range lines {
 		fmt.Printf("%d:%s\n", ix+1, line)
@@ -509,8 +509,12 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			//displayLinedYaml(newstring)
 			newstring = utils.AddLiteralBlockScalarToTags(newstring)
 			//displayLinedYaml(newstring)
-			newstring = utils.FixPlatformVersion(newstring)
-			displayLinedYaml(newstring)
+
+			if strings.Contains(err.Error(), "did not find expected key") {
+				newstring = utils.FixPlatformVersion(newstring)
+				displayLinedYaml(newstring)
+			}
+
 			newstring = utils.RemoveComments(newstring)
 			//displayLinedYaml(newstring)
 
