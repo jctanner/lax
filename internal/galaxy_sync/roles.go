@@ -176,6 +176,14 @@ func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *ut
 		panic(fmt.Sprintf("%s failed to clone to %s for some unknown reason", repoUrl, repoPath))
 	}
 
+	isValid, verr := utils.IsValidGitRepo(repoPath)
+	if verr != nil {
+		panic(fmt.Sprintf("%s failed to correcly clone to %s for some unknown reason: %s", repoUrl, repoPath, verr))
+	}
+	if !isValid {
+		panic(fmt.Sprintf("%s failed to correctly clone to %s for some unknown reason", repoUrl, repoPath))
+	}
+
 	if role.GithubBranch != "" {
 		logrus.Debugf("checkout %s branch in %s\n", role.GithubBranch, repoPath)
 		utils.CheckoutBranch(repoPath, role.GithubBranch)

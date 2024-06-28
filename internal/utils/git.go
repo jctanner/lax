@@ -210,3 +210,22 @@ func CheckoutTag(path, tagName string) error {
 
 	return nil
 }
+
+func IsValidGitRepo(repoPath string) (bool, error) {
+	// Check if the directory exists
+	info, err := os.Stat(repoPath)
+	if os.IsNotExist(err) {
+		return false, fmt.Errorf("directory does not exist")
+	}
+	if !info.IsDir() {
+		return false, fmt.Errorf("path is not a directory")
+	}
+
+	// Try to open the repository
+	_, err = git.PlainOpen(repoPath)
+	if err != nil {
+		return false, nil // Not a git repository
+	}
+
+	return true, nil // Valid git repository
+}
