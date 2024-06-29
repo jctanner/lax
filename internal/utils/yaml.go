@@ -480,7 +480,7 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 			fmt.Printf("##1 add newline + hyphen\n")
 			fixme := lines[dependencyKeyIndex]
 			lines[dependencyKeyIndex] = strings.Replace(fixme, ":", ":\n    -", 1)
-		} else if hasInlineDeps && !hasNextLineDeps {
+		} else if hasInlineDeps && !hasNextLineDeps && !hasInlineParens {
 			fmt.Printf("##2 add literal\n")
 			fixme := lines[dependencyKeyIndex]
 			lines[dependencyKeyIndex] = strings.Replace(fixme, ":", ": |\n    ", 1)
