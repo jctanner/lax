@@ -509,69 +509,81 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 
 	if err != nil {
 		// fix indentation if possible ...
-		if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") || strings.Contains(err.Error(), " cannot unmarshal !!str") || true {
-			fmt.Printf("FIXING YAML IN MEMORY...\n")
-			rawstring := string(fmap[metaFile])
 
-			// these were hiding in someone's depependency definition ...
-			rawstring = strings.ReplaceAll(rawstring, "\u00a0", " ")
+		/*
+			if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") || strings.Contains(err.Error(), " cannot unmarshal !!str") || true {
+				fmt.Printf("FIXING YAML IN MEMORY...\n")
+				rawstring := string(fmap[metaFile])
 
-			//displayLinedYaml(rawstring)
-			newstring, _ := utils.FixGalaxyIndentation(rawstring)
-			//displayLinedYaml(newstring)
-			newstring = utils.AddQuotesToDescription(newstring)
-			//displayLinedYaml(newstring)
-			newstring = utils.AddLiteralBlockScalarToTags(newstring)
-			//displayLinedYaml(newstring)
+				// these were hiding in someone's depependency definition ...
+				rawstring = strings.ReplaceAll(rawstring, "\u00a0", " ")
 
-			if strings.Contains(err.Error(), "did not find expected key") {
-				newstring = utils.FixPlatformVersion(newstring)
-				displayLinedYaml(newstring)
-			}
+				//displayLinedYaml(rawstring)
+				newstring, _ := utils.FixGalaxyIndentation(rawstring)
+				//displayLinedYaml(newstring)
+				newstring = utils.AddQuotesToDescription(newstring)
+				//displayLinedYaml(newstring)
+				newstring = utils.AddLiteralBlockScalarToTags(newstring)
+				//displayLinedYaml(newstring)
 
-			newstring = utils.ReplaceDependencyRoleWithName(newstring)
-			newstring = utils.RemoveDependenciesLiteralIfNoDeps(newstring)
-
-			newstring = utils.RemoveComments(newstring)
-			//displayLinedYaml(newstring)
-
-			displayLinedYaml(newstring)
-			//fmt.Println("trying to unmarshall munged data ...")
-
-			var meta2 types.RoleMeta
-			err2 := yaml.Unmarshal([]byte(newstring), &meta2)
-			if err2 == nil {
-				return meta2, nil
-			}
-
-			//fmt.Printf("ERROR_2 %s %s (%s)\n", f, metaFile, err2)
-			/*
-				lines := strings.Split(newstring, "\n")
-				for ix, line := range lines {
-					fmt.Printf("%d:%s\n", ix+1, line)
+				if strings.Contains(err.Error(), "did not find expected key") {
+					newstring = utils.FixPlatformVersion(newstring)
+					displayLinedYaml(newstring)
 				}
-			*/
-			displayLinedYaml(newstring)
-			fmt.Printf("ERROR_2 %s %s [[[%s]]]\n", f, metaFile, err2)
-			//return meta2, err
-			panic("COUNT NOT UNMARSHALL")
-		}
-	}
 
-	if err != nil {
+				newstring = utils.ReplaceDependencyRoleWithName(newstring)
+				newstring = utils.RemoveDependenciesLiteralIfNoDeps(newstring)
 
-		fmt.Printf("ERROR_1 %s %s %s\n", f, metaFile, err)
-		//fmt.Printf("RAW:\n%s\n", fmap[metaFile])
+				newstring = utils.RemoveComments(newstring)
+				//displayLinedYaml(newstring)
+
+				displayLinedYaml(newstring)
+				//fmt.Println("trying to unmarshall munged data ...")
+
+				var meta2 types.RoleMeta
+				err2 := yaml.Unmarshal([]byte(newstring), &meta2)
+				if err2 == nil {
+					return meta2, nil
+				}
+
+				displayLinedYaml(newstring)
+				fmt.Printf("ERROR_2 %s %s [[[%s]]]\n", f, metaFile, err2)
+				//return meta2, err
+				panic("COUNT NOT UNMARSHALL")
+			}
+		*/
+
+		fmt.Printf("FIXING YAML IN MEMORY...\n")
 		rawstring := string(fmap[metaFile])
-		lines := strings.Split(rawstring, "\n")
-		for ix, line := range lines {
-			fmt.Printf("%d:%s\n", ix+1, line)
+		fixed := utils.FixRoleMetaMainYaml(rawstring)
+		displayLinedYaml(fixed)
+		//panic("how does it look?")
+
+		var meta2 types.RoleMeta
+		err = yaml.Unmarshal([]byte(fixed), &meta2)
+		if err == nil {
+			return meta2, nil
+		} else {
+			return meta2, err
 		}
-		fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err)
-		os.Remove(f)
-		panic("")
-		//return meta, err
 	}
+
+	/*
+		if err != nil {
+
+			fmt.Printf("ERROR_1 %s %s %s\n", f, metaFile, err)
+			//fmt.Printf("RAW:\n%s\n", fmap[metaFile])
+			rawstring := string(fmap[metaFile])
+			lines := strings.Split(rawstring, "\n")
+			for ix, line := range lines {
+				fmt.Printf("%d:%s\n", ix+1, line)
+			}
+			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err)
+			os.Remove(f)
+			panic("")
+			//return meta, err
+		}
+	*/
 
 	return meta, nil
 }

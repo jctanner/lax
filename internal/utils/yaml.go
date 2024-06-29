@@ -424,6 +424,7 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 	hasInlineParens := false
 	hasNextLineDeps := false
 	dependencyKeyIndex := 0
+	hasNextLineParens := false
 
 	for ix, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
@@ -448,6 +449,8 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 			} else if len(lines) > ix {
 				if strings.TrimSpace(lines[ix+1]) != "" {
 					hasNextLineDeps = true
+				} else if strings.TrimSpace(lines[ix+1]) == "[]" {
+					hasNextLineParens = true
 				}
 			}
 
@@ -460,6 +463,7 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 	fmt.Printf("\thasLiteral: %b\n", hasLiteral)
 	fmt.Printf("\thasInlineDeps: %s\n", hasInlineDeps)
 	fmt.Printf("\thasNextLineDeps: %s\n", hasNextLineDeps)
+	fmt.Printf("\thasNextLineParens: %s\n", hasNextLineParens)
 	//fmt.Printf("\thasLiteral: %s\n", hasNextLineDeps)
 
 	/*
@@ -474,6 +478,11 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 			lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
 		}
 	*/
+
+	if hasNextLineParens {
+		fmt.Printf("##0 kill next line parens\n")
+		lines[dependencyKeyIndex+1] = ""
+	}
 
 	if !hasLiteral {
 		if !hasNextLineDeps && hasInlineDeps && !hasInlineParens {
@@ -496,12 +505,60 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 	return strings.Join(lines, "\n")
 }
 
+func removeEmptyStrings(list []string) []string {
+	var result []string
+	for _, str := range list {
+		if str != "" {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+
 // AGGREGATE FIX IT ALL ...
-func FixMetaMainYaml(yamlStr string) string {
+func FixRoleMetaMainYaml(yamlStr string) string {
 	// trim all leadining and ending whitespace
 	// find all keywords
 	// indent keywords
 	// for each keyword indent it's block
 	// words after "dependencies:" should become a list
-	return yamlStr
+
+	indentMap := map[string]int{
+		"galaxy_info":         0,
+		"author":              2,
+		"description":         2,
+		"license":             2,
+		"min_ansible_version": 2,
+		"platforms":           2,
+		"galaxy_tags":         2,
+		"dependencies":        2,
+		"- all":               6,
+		"-":                   4,
+		"versions":            6,
+	}
+
+	lines := strings.Split(yamlStr, "\n")
+	for ix, line := range lines {
+		lines[ix] = strings.TrimSpace(line)
+	}
+
+	// delete empty lines
+	lines = removeEmptyStrings(lines)
+
+	for ix, line := range lines {
+		for keyword, indent := range indentMap {
+			if strings.HasPrefix(line, keyword) {
+				spaces := strings.Repeat(" ", indent)
+				lines[ix] = spaces + line
+				break
+			}
+		}
+	}
+
+	if lines[len(lines)-1] == "  dependencies: |" {
+		lines[len(lines)-1] = "  dependences: []"
+	}
+
+	//eturn yamlStr
+	return strings.Join(lines, "\n")
 }
