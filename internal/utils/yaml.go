@@ -420,7 +420,9 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 	lines := strings.Split(yamlStr, "\n")
 
 	hasLiteral := false
-	hasDeps := false
+	hasInlineDeps := false
+	hasInlineParens := false
+	hasNextLineDeps := false
 	dependencyKeyIndex := 0
 
 	for ix, line := range lines {
@@ -433,9 +435,19 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 				hasLiteral = true
 			}
 
-			if len(lines) > ix {
+			if trimmedLine != "depedencies:" {
+				if strings.Contains(trimmedLine, "[]") {
+					hasInlineParens = true
+				} else {
+					stripped := strings.Replace(trimmedLine, "|", "", 1)
+					stripped = strings.TrimSpace(stripped)
+					if stripped != "dependencies:" {
+						hasInlineDeps = true
+					}
+				}
+			} else if len(lines) > ix {
 				if strings.TrimSpace(lines[ix+1]) != "" {
-					hasDeps = true
+					hasNextLineDeps = true
 				}
 			}
 
@@ -444,10 +456,52 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 
 	}
 
-	if !hasDeps && hasLiteral {
-		fixme := lines[dependencyKeyIndex]
-		lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
+	fmt.Printf("FIXING %s\n", lines[dependencyKeyIndex])
+	fmt.Printf("\thasLiteral: %b\n", hasLiteral)
+	fmt.Printf("\thasInlineDeps: %s\n", hasInlineDeps)
+	fmt.Printf("\thasNextLineDeps: %s\n", hasNextLineDeps)
+	//fmt.Printf("\thasLiteral: %s\n", hasNextLineDeps)
+
+	/*
+		if !hasNextLineDeps && !hasLiteral && hasInlineDeps && !hasInlineParens {
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
+		} else if hasInlineDeps && !hasNextLineDeps && !hasLiteral && !hasInlineParens {
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, ":", ": | ", 1)
+		} else if !hasInlineDeps && !hasInlineParens && !hasNextLineDeps && hasLiteral {
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
+		}
+	*/
+
+	if !hasLiteral {
+		if !hasNextLineDeps && hasInlineDeps && !hasInlineParens {
+			fmt.Printf("##1 add newline + hyphen\n")
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, ":", ":\n    -", 1)
+		} else if hasInlineDeps && !hasNextLineDeps {
+			fmt.Printf("##2 add literal\n")
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, ":", ": |\n    ", 1)
+		}
+	} else {
+		if !hasInlineDeps && !hasNextLineDeps {
+			fmt.Printf("##3 remove literal\n")
+			fixme := lines[dependencyKeyIndex]
+			lines[dependencyKeyIndex] = strings.Replace(fixme, "|", "", 1)
+		}
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// AGGREGATE FIX IT ALL ...
+func FixMetaMainYaml(yamlStr string) string {
+	// trim all leadining and ending whitespace
+	// find all keywords
+	// indent keywords
+	// for each keyword indent it's block
+	// words after "dependencies:" should become a list
+	return yamlStr
 }
