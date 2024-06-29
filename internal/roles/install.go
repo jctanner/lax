@@ -8,6 +8,7 @@ import (
 	"github.com/jctanner/lax/internal/repository"
 	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // func Install(dest string, cachedir string, server string, requirements_file string, namespace string, name string, version string, args []string) error {
@@ -24,49 +25,50 @@ func Install(kwargs *types.CmdKwargs, args []string) error {
 	name := kwargs.Name
 	version := kwargs.Version
 
-	fmt.Printf("INSTALL2: cachedir:%s dest:%s\n", cachedir, dest)
+	logrus.Debugf("ROLE INSTALL COMMAND: cachedir:%s dest:%s server:%s namespace:%s name:%s version:%s\n",
+		cachedir, dest, server, namespace, name, version)
 
 	// does dest have a repodata.json file, read it in?
 	repoClient, _ := repository.GetRepoClient(server, cachedir)
-	fmt.Printf("repoclient: %s\n", repoClient)
+	logrus.Debugf("created repo client: %s", repoClient)
 	if repoClient == nil {
 		return fmt.Errorf("no suitable repostiory found")
 	}
 
 	// Make the local package manager client
 	pkgMgr, err := packagemanager.GetPackageManager(cachedir, dest)
-	fmt.Printf("packagemanager: %s\n", pkgMgr)
+	logrus.Debugf("created package manager: %s", pkgMgr)
 	if err != nil {
 		return err
 	}
 
 	// Is the package manager's meta older? Re-download if so ...
 	if !pkgMgr.HasRepoMeta() {
-		fmt.Printf("need to fetch repo meta ...\n")
+		logrus.Debugf("no repo meta found on disk, fetching ...")
 		repoClient.FetchRepoMeta(pkgMgr.CachePath)
 	} else {
 		// Is it up to date?
 		pDate := pkgMgr.RepoMeta.Date
-		fmt.Printf("pdate: %s\n", pDate)
+		logrus.Debugf("package manager meta date: %s", pDate)
 		rDate, _ := repoClient.GetRepoMetaDate()
-		fmt.Printf("rdate: %s\n", rDate)
+		logrus.Debugf("repo client meta date: %s\n", rDate)
 
 		d1, _ := time.Parse(time.RFC3339, pDate)
 		d2, _ := time.Parse(time.RFC3339, rDate)
 
 		if d1.Before(d2) {
-			fmt.Printf("need to update local cache\n")
+			logrus.Debugf("updating local meta cache")
 			repoClient.FetchRepoMeta(pkgMgr.CachePath)
 		} else {
-			fmt.Printf("do not need to update local cache\n")
+			logrus.Debugf("not updating local meta cache")
 		}
 
 	}
 
+	// split the last argument into namespace/name/etc
 	if len(args) > 0 {
 		fqn := args[0]
 		spec := utils.SplitSpec(fqn)
-		//fmt.Printf("spec split .. %s\n", spec)
 
 		if len(spec) == 3 {
 			//server = spec[0]
@@ -79,33 +81,34 @@ func Install(kwargs *types.CmdKwargs, args []string) error {
 
 	}
 
+	// define the top level install spec
 	ispec := utils.InstallSpec{
 		Namespace: namespace,
 		Name:      name,
 		Version:   version,
 	}
 
-	fmt.Printf("initial spec: %s.%s==%s\n", ispec.Namespace, ispec.Name, ispec.Version)
+	logrus.Infof("initial spec: %s.%s==%s", ispec.Namespace, ispec.Name, ispec.Version)
 
 	specs, err := repoClient.ResolveRoleDeps(ispec)
 
 	if err != nil {
-		fmt.Printf("error solving dep tree %s\n", err)
+		logrus.Errorf("error solving dep tree %s", err)
 		return err
 	}
 
-	fmt.Printf("-----------------------------\n")
+	logrus.Infof("-----------------------------------------------------")
 	for _, spec := range specs {
-		fmt.Printf("install: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
+		logrus.Infof("install: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
 	}
 
-	fmt.Printf("-----------------------------\n")
+	logrus.Infof("-----------------------------------------------------")
 	for _, spec := range specs {
-		fmt.Printf("installing: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
+		logrus.Infof("installing: %s.%s==%s\n", spec.Namespace, spec.Name, spec.Version)
 
 		// get a local cache file from the repo to install ...
 		fn := repoClient.GetCacheRoleFileLocationForInstallSpec(spec)
-		fmt.Printf("\tfrom %s\n", fn)
+		logrus.Debugf("install %s from %s", spec, fn)
 
 		// extract it to the right place ...
 		pkgMgr.InstallRoleFromPath(spec.Namespace, spec.Name, spec.Version, fn)

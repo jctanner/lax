@@ -11,6 +11,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+
+	"github.com/sirupsen/logrus"
 	//"encoding/json"
 )
 
@@ -608,12 +610,22 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 	defer os.RemoveAll(tempDir) // Clean up the temporary directory
 
 	// Execute the tar xzvf command to extract files to the temporary directory
+	var stdout bytes.Buffer
 	cmd := exec.Command("tar", "xzvf", tarGzPath, "-C", tempDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stdout
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("execute tar command: %v", err)
+		stdoutLines := strings.Split(stdout.String(), "\n")
+		for _, line := range stdoutLines {
+			logrus.Errorf(line)
+		}
+		return fmt.Errorf("failed to execute tar command: %v", err)
+	}
+
+	stdoutLines := strings.Split(stdout.String(), "\n")
+	for _, line := range stdoutLines {
+		logrus.Debugf(line)
 	}
 
 	/*
@@ -623,7 +635,7 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 		}
 	*/
 
-	fmt.Printf("%s\n", tempDir)
+	logrus.Debugf("finding 'meta' dir in tmpdir:%s", tempDir)
 
 	// find the meta dir ...
 	metaDir := ""
@@ -640,11 +652,12 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 		}
 		return nil
 	})
-	fmt.Printf("found meta dir at %s\n", metaDir)
+	logrus.Debugf("found meta dir at %s", metaDir)
 	srcDir := filepath.Dir(metaDir)
-	fmt.Printf("setting source dir as %s\n", srcDir)
+	logrus.Debugf("setting source dir as %s", srcDir)
 
 	// copy the src to the dst ...
+	logrus.Debugf("cp -Ra %s/. %s", srcDir, dest)
 	cmd = exec.Command("cp", "-Ra", srcDir+"/.", dest)
 
 	// Set the command's output to the standard output and error to the standard error
@@ -653,7 +666,7 @@ func ExtractRoleTarGz(tarGzPath, dest string) error {
 
 	// Run the command
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("execute cp command: %v", err)
+		return fmt.Errorf("failure to execute cp command: %v", err)
 	}
 
 	return nil

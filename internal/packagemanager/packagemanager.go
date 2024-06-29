@@ -10,6 +10,7 @@ import (
 
 	"github.com/jctanner/lax/internal/repository"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v2"
 )
@@ -155,12 +156,12 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 
 	// Basepath / collections / ansible_collections / namespace / name / ...
 	dirPath := filepath.Join(rPath, namespace+"."+name)
-	fmt.Printf("\t%s\n", dirPath)
+	logrus.Debugf("package manager using %s dir", dirPath)
 	utils.MakeDirs(dirPath)
-	fmt.Printf("extracting %s to %s\n", fn, dirPath)
+	//logrus.Debugf("extracting %s to %s", fn, dirPath)
 	err := utils.ExtractRoleTarGz(fn, dirPath)
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		logrus.Errorf("error extracting file: %s", err)
 		panic("")
 	}
 
@@ -176,13 +177,13 @@ func (pkgmgr *PackageManager) InstallRoleFromPath(namespace string, name string,
 	// Write the yaml data to a file
 	file, err := os.Create(ymlFileName)
 	if err != nil {
-		fmt.Printf("Error creating yml file: %v\n", err)
+		logrus.Errorf("Error creating yml file: %v", err)
 		return err
 	}
 	defer file.Close()
 
 	if _, err := file.Write(yamlData); err != nil {
-		fmt.Printf("Error writing to yml file: %v\n", err)
+		logrus.Errorf("Error writing to yml file: %v", err)
 		return err
 	}
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/jctanner/lax/internal/types"
 	"github.com/jctanner/lax/internal/utils"
+	"github.com/sirupsen/logrus"
 
 	"github.com/blang/semver/v4"
 	//"github.com/Masterminds/semver/v3"
@@ -252,7 +253,7 @@ func (client *HttpRepoClient) GetCacheFileLocationForInstallSpec(spec utils.Inst
 	utils.MakeDirs(cDir)
 
 	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
-	fmt.Printf("%s\n", tarName)
+	logrus.Infof("found: %s", tarName)
 
 	cFile := filepath.Join(cDir, tarName)
 	if utils.FileExists(cFile) {
@@ -272,7 +273,7 @@ func (client *HttpRepoClient) GetCacheRoleFileLocationForInstallSpec(spec utils.
 	utils.MakeDirs(rDir)
 
 	tarName := fmt.Sprintf("%s-%s-%s.tar.gz", spec.Namespace, spec.Name, spec.Version)
-	fmt.Printf("%s\n", tarName)
+	logrus.Infof("found %s/roles/%s", client.BaseURL, tarName)
 
 	rFile := filepath.Join(rDir, tarName)
 	if utils.FileExists(rFile) {
@@ -281,6 +282,7 @@ func (client *HttpRepoClient) GetCacheRoleFileLocationForInstallSpec(spec utils.
 
 	// download it ...
 	url := client.BaseURL + "/roles/" + tarName
+	logrus.Infof("download %s to %s", url, rFile)
 	DownloadFile(url, rFile)
 
 	return rFile
