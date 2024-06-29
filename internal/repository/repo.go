@@ -22,72 +22,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-/***************************************************************
-GLOBAL
-***************************************************************/
-
-type RepoMeta struct {
-	Date                string       `json:"date"`
-	CollectionManifests RepoMetaFile `json:"collection_manifests"`
-	CollectionFiles     RepoMetaFile `json:"collection_files"`
-	RoleManifests       RepoMetaFile `json:"role_manifests"`
-	RoleFiles           RepoMetaFile `json:"role_files"`
-}
-
-type RepoMetaFile struct {
-	Date     string `json:"date"`
-	Filename string `json:"filename"`
-}
-
-/***************************************************************
-COLLECTIONS
-***************************************************************/
-
-type CollectionManifest struct {
-	CollectionInfo CollectionInfo `json:"collection_info"`
-}
-
-type CollectionInfo struct {
-	Namespace    string            `json:"namespace"`
-	Name         string            `json:"name"`
-	Version      string            `json:"version"`
-	Dependencies map[string]string `json:"dependencies"`
-}
-
-type CollectionFilesMeta struct {
-	Files []CollectionFileInfo `json:"files"`
-}
-
-type CollectionFileInfo struct {
-	Name           string `json:"name"`
-	FType          string `json:"ftype"`
-	CheckSumType   string `json:"chksum_type"`
-	CheckSumSHA256 string `json:"chksum_sha256"`
-}
-
-type CollectionCachedFileInfo struct {
-	Namespace      string `json:"namespace"`
-	Name           string `json:"name"`
-	Version        string `json:"version"`
-	FileName       string `json:"filename"`
-	FileType       string `json:"filetype"`
-	CheckSumSHA256 string `json:"chksum_sha256"`
-}
-
-/***************************************************************
-ROLES
-***************************************************************/
-
-type RoleCachedFileInfo struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Version   string `json:"version"`
-	FileName  string `json:"filename"`
-	FileType  string `json:"filetype"`
-	//CheckSumType   string `json:"chksum_type"`
-	//CheckSumSHA256 string `json:"chksum_sha256"`
-}
-
 func createCollectionManifestsTarGz(manifests []CollectionManifest, tarGzPath string) error {
 	// Create a buffer to write the tar archive
 	var buf bytes.Buffer
@@ -508,50 +442,6 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 	}
 
 	if err != nil {
-		// fix indentation if possible ...
-
-		/*
-			if strings.Contains(err.Error(), "did not find expected key") || strings.Contains(err.Error(), " mapping values are not allowed in this context") || strings.Contains(err.Error(), " cannot unmarshal !!str") || true {
-				fmt.Printf("FIXING YAML IN MEMORY...\n")
-				rawstring := string(fmap[metaFile])
-
-				// these were hiding in someone's depependency definition ...
-				rawstring = strings.ReplaceAll(rawstring, "\u00a0", " ")
-
-				//displayLinedYaml(rawstring)
-				newstring, _ := utils.FixGalaxyIndentation(rawstring)
-				//displayLinedYaml(newstring)
-				newstring = utils.AddQuotesToDescription(newstring)
-				//displayLinedYaml(newstring)
-				newstring = utils.AddLiteralBlockScalarToTags(newstring)
-				//displayLinedYaml(newstring)
-
-				if strings.Contains(err.Error(), "did not find expected key") {
-					newstring = utils.FixPlatformVersion(newstring)
-					displayLinedYaml(newstring)
-				}
-
-				newstring = utils.ReplaceDependencyRoleWithName(newstring)
-				newstring = utils.RemoveDependenciesLiteralIfNoDeps(newstring)
-
-				newstring = utils.RemoveComments(newstring)
-				//displayLinedYaml(newstring)
-
-				displayLinedYaml(newstring)
-				//fmt.Println("trying to unmarshall munged data ...")
-
-				var meta2 types.RoleMeta
-				err2 := yaml.Unmarshal([]byte(newstring), &meta2)
-				if err2 == nil {
-					return meta2, nil
-				}
-
-				displayLinedYaml(newstring)
-				fmt.Printf("ERROR_2 %s %s [[[%s]]]\n", f, metaFile, err2)
-				//return meta2, err
-				panic("COUNT NOT UNMARSHALL")
-			}
-		*/
 
 		fmt.Printf("FIXING YAML IN MEMORY...\n")
 		rawstring := string(fmap[metaFile])
@@ -567,23 +457,6 @@ func GetRoleMetaFromTarball(f string) (types.RoleMeta, error) {
 			return meta2, err
 		}
 	}
-
-	/*
-		if err != nil {
-
-			fmt.Printf("ERROR_1 %s %s %s\n", f, metaFile, err)
-			//fmt.Printf("RAW:\n%s\n", fmap[metaFile])
-			rawstring := string(fmap[metaFile])
-			lines := strings.Split(rawstring, "\n")
-			for ix, line := range lines {
-				fmt.Printf("%d:%s\n", ix+1, line)
-			}
-			fmt.Printf("ERROR_2 %s %s %s\n", f, metaFile, err)
-			os.Remove(f)
-			panic("")
-			//return meta, err
-		}
-	*/
 
 	return meta, nil
 }
