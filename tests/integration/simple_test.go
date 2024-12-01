@@ -43,6 +43,8 @@ func runCommandInDir(command string, args []string, dir string) error {
 
 func TestLaxInstallFromHttp(t *testing.T) {
 
+	t.Log("Starting install from http test ...")
+
 	laxCmd, _ := filepath.Abs("../../lax")
 
 	// Print the current working directory
@@ -50,10 +52,16 @@ func TestLaxInstallFromHttp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get working directory: %s", err)
 	}
-	fmt.Printf("Current working directory: %s\n", pwd)
+	t.Logf("Current working directory: %s\n", pwd)
 
 	// Setup
-	tempDir := "/tmp/lax-test"
+	//tempDir := "/tmp/lax-test"
+	//tempDir := os.TempDir()
+	tempDir, err := os.MkdirTemp(os.TempDir(), "lax-*")
+	if err != nil {
+		fmt.Println("Error creating temp directory:", err)
+		return
+	}
 	installDir := tempDir + "/install"
 	repoDir := tempDir + "/repo"
 	os.Mkdir(tempDir, 0755)
@@ -67,22 +75,26 @@ func TestLaxInstallFromHttp(t *testing.T) {
 		// fmt.Printf("%s is not available in PATH\n", galaxy_cli)
 		t.Fatalf("%s command is not available in PATH\n", galaxy_cli)
 	}
+	t.Log("collection init")
 	initErr := runCommandInDir("ansible-galaxy", []string{"collection", "init", "testn.col"}, repoDir)
 	if initErr != nil {
 		t.Fatalf("init failed: %v", initErr)
 	}
+	t.Log("collection build")
 	buildErr := runCommandInDir("ansible-galaxy", []string{"collection", "build", "--output-path=" + repoDir + "/collections", "."}, repoDir+"/"+"testn"+"/"+"col")
 	if buildErr != nil {
 		t.Fatalf("init failed: %v", buildErr)
 	}
 
 	// create the lax repo ... ?
+	t.Log("lax createrepo")
 	repoInitErr := runCommandInDir(laxCmd, []string{"createrepo"}, repoDir)
 	if repoInitErr != nil {
 		t.Fatalf("createrepo failed: %v", repoInitErr)
 	}
 
 	// Start local http server
+	t.Logf("starting python http server...")
 	cmd := exec.Command("python3", "-m", "http.server", "--directory", repoDir, "8000")
 	err = cmd.Start()
 	if err != nil {
@@ -100,6 +112,7 @@ func TestLaxInstallFromHttp(t *testing.T) {
 		"--dest=" + installDir + "/.ansible",
 		"testn.col",
 	}
+	t.Logf("running lax %s", installArgs)
 	installErr := runCommandInDir(laxCmd, installArgs, installDir)
 	if installErr != nil {
 		t.Fatalf("install failed: %v", installErr)
@@ -108,7 +121,12 @@ func TestLaxInstallFromHttp(t *testing.T) {
 	// Verify installation
 	if _, err := os.Stat(installDir + "/.ansible/collections/ansible_collections/testn/col/MANIFEST.json"); os.IsNotExist(err) {
 		t.Fatalf("Collection was not installed correctly")
+	} else {
+		t.Log("found the expected installed manifest file")
 	}
+
+	kwargs := []string{installDir}
+	runCommandInDir("find", kwargs, "/")
 
 	// Cleanup is handled by defer statements
 }
