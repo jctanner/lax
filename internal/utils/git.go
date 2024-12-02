@@ -8,28 +8,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-/*
-// cloneRepo clones a Git repository to the specified path
-func CloneRepo(url, path string) error {
-	// Ensure the target directory exists
-	err := os.MkdirAll(path, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create directory: %v", err)
-	}
-
-	// Clone the repository
-	_, err = git.PlainClone(path, false, &git.CloneOptions{
-		URL:      url,
-		Progress: os.Stdout,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to clone repository: %v", err)
-	}
-
-	return nil
-}
-*/
-
 // CloneRepo clones a Git repository and ensures it's fully cloned
 func CloneRepo(url, path string) error {
 	// Ensure the target directory exists
@@ -83,23 +61,6 @@ func ListTags(path string) ([]string, error) {
 	return tags, nil
 }
 
-/*
-func GetCommitDate(repoPath string, commitHash string) (string, error) {
-	// Create the git command
-	cmd := exec.Command("git", "-C", repoPath, "show", "-s", "--format=%ci", commitHash)
-
-	// Run the command and capture the output
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to execute git command: %w", err)
-	}
-
-	// Trim any surrounding whitespace from the output
-	date := strings.TrimSpace(string(output))
-	return date, nil
-}
-*/
-
 func GetCommitDate(repoPath string, commitHash string) (string, error) {
 	// Open the repository at the specified path
 	repo, err := git.PlainOpen(repoPath)
@@ -120,23 +81,6 @@ func GetCommitDate(repoPath string, commitHash string) (string, error) {
 	return commitDate.Format("20060102150405"), nil
 }
 
-/*
-func GetLatestCommitHash(repoPath string) (string, error) {
-	// Create the git command
-	cmd := exec.Command("git", "-C", repoPath, "rev-parse", "HEAD")
-
-	// Run the command and capture the output
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to execute git command: %w", err)
-	}
-
-	// Trim any surrounding whitespace from the output
-	commitHash := strings.TrimSpace(string(output))
-	return commitHash, nil
-}
-*/
-
 func GetLatestCommitHash(repoPath string) (string, error) {
 	// Open the repository at the specified path
 	repo, err := git.PlainOpen(repoPath)
@@ -154,18 +98,6 @@ func GetLatestCommitHash(repoPath string) (string, error) {
 	commitHash := headRef.Hash().String()
 	return commitHash, nil
 }
-
-/*
-func CheckoutBranch(path, branchName string) error {
-	// Run the git checkout command as a subprocess with the working directory set to the repository path
-	cmd := exec.Command("git", "checkout", branchName)
-	cmd.Dir = path
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to checkout branch: %v", err)
-	}
-	return nil
-}
-*/
 
 func CheckoutBranch(path, branchName string) error {
 	// Open the repository at the specified path
@@ -190,18 +122,6 @@ func CheckoutBranch(path, branchName string) error {
 
 	return nil
 }
-
-/*
-func CheckoutTag(path, tagName string) error {
-	// Run the git checkout command as a subprocess with the working directory set to the repository path
-	cmd := exec.Command("git", "checkout", tagName)
-	cmd.Dir = path
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to checkout tag: %v", err)
-	}
-	return nil
-}
-*/
 
 func CheckoutTag(path, tagName string) error {
 	// Open the repository at the specified path

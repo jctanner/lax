@@ -19,11 +19,11 @@ func (spec InstallSpec) Equals(other InstallSpec) bool {
 
 func SplitSpec(input string) []string {
 
-	// geerlingguy.mac
-	// github.com:geerlingguy.mac
-	// https://github.com:geerlingguy.mac
-	// https://github.com/geerlingguy.mac
-	// git@github.com:geerlingguy/mac
+	// geerlingguy.mac -> [geerlingguy, mac]
+	// github.com:geerlingguy.mac -> []
+	// https://github.com:geerlingguy.mac -> []
+	// https://github.com/geerlingguy.mac -> []
+	// git@github.com:geerlingguy/mac -> []
 
 	colonIndex := strings.Index(input, ":")
 
