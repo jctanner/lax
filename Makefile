@@ -4,7 +4,7 @@ container/image/integration:
 
 .PHONY: build
 build: container/image/integration
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'rm -rf lax; go build -buildvcs=false -o lax ./cmd/lax'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -t lax:integration bash -c 'rm -rf lax; go build -buildvcs=false -o lax ./cmd/lax'
 
 .PHONY: tests/unit
 tests/unit:
