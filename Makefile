@@ -8,11 +8,11 @@ build: container/image/integration
 
 .PHONY: tests/unit
 tests/unit:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -coverprofile cover.out -tags "unit" ./...'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go test -v -coverprofile cover.out -tags "unit" ./...'
 
 .PHONY: tests/coverage
 tests/coverage:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go tool cover -html cover.out -o cover.html'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go tool cover -html cover.out -o cover.html'
 
 .PHONY: tests/integration
 tests/integration: build
