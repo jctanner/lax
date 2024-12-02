@@ -415,7 +415,7 @@ func resolveRoleDeps(spec utils.InstallSpec, manifests *[]types.RoleMeta, specs 
 
 	// what are the 1st order deps
 	for j, d := range thisManifest.GalaxyInfo.Dependencies {
-		fmt.Printf("\tdep: %s %s\n", j, d)
+		fmt.Printf("\tdep: %d %s\n", j, d)
 		panic("")
 		/*
 			parts := strings.Split(j, ".")

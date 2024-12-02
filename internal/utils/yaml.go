@@ -85,114 +85,6 @@ func AddQuotesToDescription(yamlData string) string {
 	return strings.Join(lines, "\n")
 }
 
-/*
-Sometimes a list is not a list ...
-galaxy_tags:
-
-	foo
-	bar
-	baz
-*/
-/*
-func AddLiteralBlockScalarToTags(yamlStr string) string {
-	lines := strings.Split(yamlStr, "\n")
-	modifiedLines := []string{}
-	inGalaxyTags := false
-	malformedTags := []string{}
-
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-
-		if strings.HasPrefix(trimmedLine, "galaxy_tags:") {
-			inGalaxyTags = true
-			modifiedLines = append(modifiedLines, line)
-			continue
-		}
-
-		if inGalaxyTags {
-			match, _ := regexp.MatchString(`^\s*\w+`, trimmedLine)
-			if match {
-				malformedTags = append(malformedTags, strings.TrimSpace(line))
-			} else {
-				inGalaxyTags = false
-				if len(malformedTags) > 0 {
-					modifiedLines = append(modifiedLines, "galaxy_tags: |")
-					for _, tag := range malformedTags {
-						modifiedLines = append(modifiedLines, "  "+tag)
-					}
-					malformedTags = []string{}
-				}
-				modifiedLines = append(modifiedLines, line)
-			}
-		} else {
-			modifiedLines = append(modifiedLines, line)
-		}
-	}
-
-	// Handle case where galaxy_tags is at the end of the file
-	if len(malformedTags) > 0 {
-		modifiedLines = append(modifiedLines, "galaxy_tags: |")
-		for _, tag := range malformedTags {
-			modifiedLines = append(modifiedLines, "  "+tag)
-		}
-	}
-
-	return strings.Join(modifiedLines, "\n")
-}
-*/
-
-/*
-func AddLiteralBlockScalarToTags(yamlStr string) string {
-	lines := strings.Split(yamlStr, "\n")
-	modifiedLines := []string{}
-	inGalaxyTags := false
-	malformedTags := []string{}
-
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-
-		if strings.HasPrefix(trimmedLine, "galaxy_tags:") {
-			inGalaxyTags = true
-			malformedTags = append(malformedTags, strings.TrimSpace(strings.TrimPrefix(trimmedLine, "galaxy_tags:")))
-			continue
-		}
-
-		if inGalaxyTags {
-			match, _ := regexp.MatchString(`^\s*\w+`, trimmedLine)
-			if match {
-				malformedTags = append(malformedTags, strings.TrimSpace(line))
-			} else {
-				inGalaxyTags = false
-				if len(malformedTags) > 0 {
-					modifiedLines = append(modifiedLines, "  galaxy_tags: |")
-					for _, tag := range malformedTags {
-						if tag != "" {
-							modifiedLines = append(modifiedLines, "  "+tag)
-						}
-					}
-					malformedTags = []string{}
-				}
-				modifiedLines = append(modifiedLines, line)
-			}
-		} else {
-			modifiedLines = append(modifiedLines, line)
-		}
-	}
-
-	// Handle case where galaxy_tags is at the end of the file
-	if len(malformedTags) > 0 {
-		modifiedLines = append(modifiedLines, "  galaxy_tags: |")
-		for _, tag := range malformedTags {
-			if tag != "" {
-				modifiedLines = append(modifiedLines, "  "+tag)
-			}
-		}
-	}
-
-	return strings.Join(modifiedLines, "\n")
-}
-*/
-
 func countLeadingWhitespaces(s string) int {
 	re := regexp.MustCompile(`^\s*`)
 	match := re.FindString(s)
@@ -460,10 +352,10 @@ func RemoveDependenciesLiteralIfNoDeps(yamlStr string) string {
 	}
 
 	fmt.Printf("FIXING %s\n", lines[dependencyKeyIndex])
-	fmt.Printf("\thasLiteral: %b\n", hasLiteral)
-	fmt.Printf("\thasInlineDeps: %s\n", hasInlineDeps)
-	fmt.Printf("\thasNextLineDeps: %s\n", hasNextLineDeps)
-	fmt.Printf("\thasNextLineParens: %s\n", hasNextLineParens)
+	fmt.Printf("\thasLiteral: %t\n", hasLiteral)
+	fmt.Printf("\thasInlineDeps: %t\n", hasInlineDeps)
+	fmt.Printf("\thasNextLineDeps: %t\n", hasNextLineDeps)
+	fmt.Printf("\thasNextLineParens: %t\n", hasNextLineParens)
 	//fmt.Printf("\thasLiteral: %s\n", hasNextLineDeps)
 
 	/*

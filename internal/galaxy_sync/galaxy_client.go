@@ -469,7 +469,7 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 		}
 
 		for _, col := range collectionsResponse.Data {
-			logrus.Debugf("process collection result: %s\n", col)
+			logrus.Debugf("process collection result: %v\n", col)
 			// need to get the details page to find the download url ...
 			// /api/v3/plugin/ansible/content/published/collections/index/geerlingguy/mac/versions/4.0.1/
 			detailsUrl := fmt.Sprintf(

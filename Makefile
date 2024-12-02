@@ -8,12 +8,16 @@ build: container/image/integration
 
 .PHONY: tests/unit
 tests/unit:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it golang:1.22.3 bash -c 'go test ./... -tags "unit"'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -coverprofile cover.out -tags "unit" ./...'
+
+.PHONY: tests/coverage
+tests/coverage:
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go tool cover -html cover.out -o cover.html'
 
 .PHONY: tests/integration
 tests/integration: build
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -buildvcs=false ./tests/integration -tags "integration"'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -buildvcs=false -tags "integration" ./tests/integration'
 
 .PHONY: tests/integration
 tests/integration/nobuild:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -buildvcs=false ./tests/integration -tags "integration"'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash -c 'go test -v -buildvcs=false -tags "integration" ./tests/integration'

@@ -125,7 +125,7 @@ func GetRoleVersionArtifact(role Role, version RoleVersion, destdir string) (str
 
 func MakeRoleVersionArtifact(role Role, rolesDir string, cacheDir string, fc *utils.FileStore) (string, error) {
 
-	logrus.Debugf("make role version artifact for %s\n", role)
+	logrus.Debugf("make role version artifact for %v\n", role)
 
 	// how can we make a sortable version from a commit?
 	// how can we make a sortable version from a branch name?

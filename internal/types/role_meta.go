@@ -157,135 +157,7 @@ func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	return nil
 }
 
-/*
-func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
-
-	var raw rawYAML
-	if err := unmarshal(&raw); err != nil {
-		return err
-	}
-
-	// Print the raw data
-	fmt.Printf("Raw data: %#v\n", raw.Data)
-
-	switch data := raw.Data.(type) {
-	case string:
-		d.Src = data
-		d.Name = data
-		d.Version = data
-	case map[interface{}]interface{}:
-		if src, ok := data["src"].(string); ok {
-			d.Src = src
-		}
-		if name, ok := data["name"].(string); ok {
-			d.Name = name
-		}
-		if role, ok := data["role"].(string); ok {
-			d.Name = role
-		}
-		if version, ok := data["version"].(string); ok {
-			d.Version = version
-		}
-	default:
-		return fmt.Errorf("unexpected type: %T", data)
-	}
-	return nil
-}
-*/
-
-/*
-func (d *RoleDependency) UnmarshalYAML(unmarshal func(interface{}) error) error {
-
-	var raw rawYAML
-	if err := unmarshal(&raw); err != nil {
-		return err
-	}
-
-	var depString string
-	if err := unmarshal(&depString); err == nil {
-		d.Src = depString
-		d.Name = depString
-		d.Version = depString
-		return nil
-	}
-
-	var depMap map[string]string
-	if err := unmarshal(&depMap); err == nil {
-		d.Src = depMap["src"]
-		d.Name = depMap["name"]
-		d.Version = depMap["version"]
-		return nil
-	}
-
-	fmt.Printf("failed to unmarshal Dependency %s", depString)
-	return fmt.Errorf("failed to unmarshal Dependency %s", depString)
-}
-*/
-
 type GalaxyTags []string
-
-/*
-func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
-
-	fmt.Printf("-----------------------------------")
-	fmt.Printf("gt: %s\n", gt)
-	fmt.Printf("-----------------------------------")
-	var tags []string
-
-	*gt = tags
-	return nil
-
-	// Try to unmarshal as a list of strings
-	//var tags []string
-	if err := unmarshal(&tags); err == nil {
-		*gt = tags
-		return nil
-	}
-
-	// If it fails, try to unmarshal as a single string and split it into a list
-	var singleLine string
-	if err := unmarshal(&singleLine); err == nil {
-		*gt = strings.Fields(singleLine) // Split by whitespace
-		return nil
-	}
-
-	// If both attempts fail, return an error
-	return fmt.Errorf("failed to unmarshal GalaxyTags")
-}
-*/
-
-/*
-func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
-
-	fmt.Println("----------------------------------------------")
-	fmt.Println("UnmarshalYAML called for GalaxyTags")
-	fmt.Println("----------------------------------------------")
-
-	// Try to unmarshal as a list of strings
-	var tags []string
-	if err := unmarshal(&tags); err == nil {
-		*gt = tags
-		return nil
-	}
-
-	// If it fails, try to unmarshal as a single string and split it into a list
-	var singleLine string
-	if err := unmarshal(&singleLine); err == nil {
-		// Split by lines and trim spaces
-		lines := strings.Split(singleLine, "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				*gt = append(*gt, line)
-			}
-		}
-		return nil
-	}
-
-	// If both attempts fail, return an error
-	return fmt.Errorf("failed to unmarshal GalaxyTags")
-}
-*/
 
 // Implement custom unmarshaling for GalaxyTags
 func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -294,7 +166,7 @@ func (gt *GalaxyTags) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	var raw rawYAML
 	if err := unmarshal(&raw); err != nil {
-		fmt.Print("ERROR %s\n", err)
+		fmt.Printf("ERROR %s\n", err)
 		return err
 	}
 
