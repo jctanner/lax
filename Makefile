@@ -6,13 +6,22 @@ container/image/integration:
 build: container/image/integration
 	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -t lax:integration bash -c 'rm -rf lax; go build -buildvcs=false -o lax ./cmd/lax'
 
+.PHONY: fmt
+fmt: container/image/integration
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -t lax:integration bash -c 'go fmt ./...'
+
+.PHONY: debug
+debug: container/image/integration
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -it lax:integration bash
+
+
 .PHONY: tests/unit
 tests/unit:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go test -v -coverprofile cover.out -tags "unit" ./...'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go test -v -tags "!integration" ./...'
 
-.PHONY: tests/coverage
+.PHONY: tests/unit/coverage
 tests/coverage:
-	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go tool cover -html cover.out -o cover.html'
+	docker run -w /app -v go-mod-cache:/go/pkg/mod -v $(PWD):/app -i lax:integration bash -c 'go test -v -coverprofile cover.out -tags "!integration" ./... && go tool cover -html cover.out -o cover.html'
 
 .PHONY: tests/integration
 tests/integration: build

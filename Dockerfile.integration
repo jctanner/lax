@@ -1,3 +1,4 @@
 FROM golang:1.22.3
 
 RUN apt -y update && apt -y install ansible-core
+RUN go install github.com/go-delve/delve/cmd/dlv@latest

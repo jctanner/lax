@@ -67,54 +67,9 @@ func GetAbsPath(path string) (string, error) {
 	return absPath, err
 }
 
-/*
-func IsDir(path string) bool {
-    info, err := os.Stat(path)
-    if err != nil {
-        return false
-    }
-    return info.IsDir()
-}
-
-func IsFile(path string) bool {
-    abspath, _ := GetAbsPath(path)
-    _, err := os.Stat(abspath)
-    //if err != nil {
-    if errors.Is(err, fs.ErrNotExist) {
-        fmt.Printf("%s does not exist1 %s\n", abspath, err)
-        return false
-    }
-    if IsDir(abspath) {
-        fmt.Printf("%s does not exist2\n", abspath)
-        return false
-    }
-    return true
-}
-*/
-
-/*
-// GetFileInfo runs the `stat` command on the provided path and parses the output
-func GetFileInfo(path string) (*FileInfo, error) {
-	// Execute the stat command
-	cmd := exec.Command("stat", "-c", "%F", path)
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute stat command: %w", err)
-	}
-
-	// Parse the output to determine the file type
-	fileType := strings.TrimSpace(string(output))
-
-	return &FileInfo{
-		Path: path,
-		Type: fileType,
-	}, nil
-}
-*/
-
 func GetFileInfo(path string) (*FileInfo, error) {
 	// Use os.Stat to get file information
-	info, err := os.Stat(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("file does not exist: %w", err)
@@ -168,7 +123,7 @@ func IsLink(path string) bool {
 	if err != nil {
 		return false
 	}
-	if finfo.Type == "symbolic link" {
+	if finfo.Type == "symbolic link" || finfo.Type == "symlink" {
 		return true
 	}
 	return false
@@ -367,21 +322,6 @@ func ExtractFilesFromTarGz(filepath string, filenamesToExtract []string) (map[st
 	return filesContent, nil
 }
 
-/*
-// Unmarshal JSON data into a map
-func UnmarshalJSONData(jsonData []byte) (map[string]interface{}, error) {
-	unmarshaledData := make(map[string]interface{})
-	for filename, data := range jsonData {
-		var temp map[string]interface{}
-		if err := json.Unmarshal(data, &temp); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal JSON file %s: %w", filename, err)
-		}
-		unmarshaledData[filename] = temp
-	}
-	return unmarshaledData, nil
-}
-*/
-
 func CopyFile(src string, dst string) error {
 	// Open the source file
 	srcFile, err := os.Open(src)
@@ -478,127 +418,6 @@ func ExtractTarGz(tarGzPath, dest string) error {
 	}
 	return nil
 }
-
-/*
-// ExtractTarGz extracts a tar.gz file to the specified destination
-func ExtractTarGz(tarGzPath, dest string) error {
-	// Open the tar.gz file
-	file, err := os.Open(tarGzPath)
-	if err != nil {
-		return fmt.Errorf("open tar.gz file: %v", err)
-	}
-	defer file.Close()
-
-	// Create gzip reader
-	uncompressedStream, err := gzip.NewReader(file)
-	if err != nil {
-		return fmt.Errorf("create gzip reader: %v", err)
-	}
-	defer uncompressedStream.Close()
-
-	// Create tar reader
-	tarReader := tar.NewReader(uncompressedStream)
-
-	// Iterate through the files in the archive
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break // End of archive
-		}
-		if err != nil {
-			return fmt.Errorf("read tar header: %v", err)
-		}
-
-		// Determine the target file path
-		target := filepath.Join(dest, header.Name)
-
-		// Ensure the parent directory exists
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-			return fmt.Errorf("create directory: %v", err)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			// Create directory if it does not exist
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-					return fmt.Errorf("create directory: %v", err)
-				}
-			}
-		case tar.TypeReg:
-			// Create and write to file
-			outFile, err := os.Create(target)
-			if err != nil {
-				return fmt.Errorf("create file: %v", err)
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
-				return fmt.Errorf("write file: %v", err)
-			}
-			outFile.Close()
-
-			// Set file permissions
-			if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
-				return fmt.Errorf("set file permissions: %v", err)
-			}
-		case tar.TypeSymlink:
-			// Create symlink
-			if err := os.Symlink(header.Linkname, target); err != nil {
-				return fmt.Errorf("create symlink: %v", err)
-			}
-		case tar.TypeLink:
-			// Create hard link
-			if err := os.Link(header.Linkname, target); err != nil {
-				return fmt.Errorf("create hard link: %v", err)
-			}
-		default:
-			return fmt.Errorf("unsupported file type: %v", header.Typeflag)
-		}
-	}
-	return nil
-}
-*/
-
-/*
-func ExtractTarGz(tarGzPath, dest string) error {
-
-	// extract to a tempdir first ...
-	tempDir, _ := CreateTempDirectory()
-
-	// Ensure the destination directory exists
-	if err := os.MkdirAll(dest, 0755); err != nil {
-		return fmt.Errorf("create destination directory: %v", err)
-	}
-
-	// Get the absolute path of the tar.gz file
-	absTarGzPath, err := filepath.Abs(tarGzPath)
-	if err != nil {
-		return fmt.Errorf("get absolute path of tar.gz file: %v", err)
-	}
-
-	// Change the current working directory to the destination directory
-	originalDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("get current working directory: %v", err)
-	}
-	defer os.Chdir(originalDir) // Ensure we return to the original directory
-
-	if err := os.Chdir(dest); err != nil {
-		return fmt.Errorf("change directory to destination: %v", err)
-	}
-
-	// Execute the tar xzvf command
-	cmd := exec.Command("tar", "xzvf", absTarGzPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("execute tar command: %v", err)
-	}
-
-	return nil
-}
-*/
 
 // ExtractTarGz extracts a tar.gz file to the specified destination
 func ExtractRoleTarGz(tarGzPath, dest string) error {
@@ -704,47 +523,6 @@ func CreateSymlink(srcFile string, linkName string) error {
 
 	return nil
 }
-
-/*
-func FindMatchingFiles(directory, pattern string) ([]string, error) {
-	// Combine the directory and pattern to create a full search pattern
-	searchPattern := filepath.Join(directory, pattern)
-
-	// Use filepath.Glob to find matching files
-	logrus.Debugf("%s search starting\n", pattern)
-	matches, err := filepath.Glob(searchPattern)
-	logrus.Debugf("%s search finished\n", pattern)
-	if err != nil {
-		return nil, fmt.Errorf("failed to search for files: %w", err)
-		//panic("")
-	}
-
-	return matches, nil
-}
-*/
-
-/*
-func FindMatchingFiles(directory string, pattern string) ([]string, error) {
-	searchPattern := filepath.Join(directory, pattern)
-	logrus.Debugf("%s search starting\n", searchPattern)
-	cmd := exec.Command("find", ".", "-maxdepth", "1", "-name", searchPattern)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	logrus.Debugf("%s search finished\n", searchPattern)
-	if err != nil {
-		return nil, err
-	}
-
-	var matches []string
-	for _, line := range bytes.Split(out.Bytes(), []byte{'\n'}) {
-		if len(line) > 0 {
-			matches = append(matches, string(line))
-		}
-	}
-	return matches, nil
-}
-*/
 
 func FindMatchingFiles(directory string, pattern string) ([]string, error) {
 
