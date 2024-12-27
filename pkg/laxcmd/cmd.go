@@ -110,20 +110,34 @@ func Execute() {
 		Short: "Sync content from galaxy into a lax repo directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			SetLogLevel(&kwargs)
-			/*
-			   if collections_only || (!collections_only && !roles_only) {
-			       if !artifacts_only {
-			           collections.SyncCollections(server, dest)
-			           collections.SyncVersions(server, dest)
-			       }
-			       collections.SyncArtifacts(server, dest)
-			   }
-			   if roles_only || (!collections_only && !roles_only) {
-			       roles.SyncRoles(server, dest)
-			   }
-			*/
-			if kwargs.Server == "" {
+			if kwargs.Server == "" || kwargs.Server == "https://console.redhat.com" {
 				kwargs.Server = "https://galaxy.ansible.com"
+			}
+            kwargs.ApiPrefix = "/api"
+            kwargs.AuthUrl = ""
+
+			fmt.Println("###########################################")
+			fmt.Printf("%v\n", kwargs)
+			fmt.Println("###########################################")
+
+			err := galaxy_sync.GalaxySync(&kwargs)
+			if err != nil {
+				logrus.Errorf("ERROR: %s\n", err)
+			}
+		},
+	}
+
+	var crcSyncCmd = &cobra.Command{
+		Use:   "crc-sync",
+		Short: "Sync content from console.redhat.com into a lax repo directory",
+		Run: func(cmd *cobra.Command, args []string) {
+			SetLogLevel(&kwargs)
+			if kwargs.Server == ""  || kwargs.Server == "https://galaxy.ansible.com" {
+				kwargs.Server = "https://console.redhat.com"
+			}
+            kwargs.ApiPrefix = "/api/automation-hub"
+			if kwargs.AuthUrl == "" {
+				kwargs.AuthUrl = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
 			}
 			err := galaxy_sync.GalaxySync(&kwargs)
 			if err != nil {
@@ -131,6 +145,7 @@ func Execute() {
 			}
 		},
 	}
+
 
 	createRepoCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where the files are")
 	createRepoCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just process collections")
@@ -166,8 +181,23 @@ func Execute() {
 	syncCmd.Flags().BoolVar(&kwargs.LatestOnly, "latest", false, "get only the latest version")
 	syncCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements", "r", "", "requirements file")
 	syncCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
-	//syncCmd.MarkFlagRequired("server")
 	syncCmd.MarkFlagRequired("dest")
+
+	crcSyncCmd.Flags().StringVar(&kwargs.Server, "server", "", "remote server")
+	crcSyncCmd.Flags().StringVar(&kwargs.AuthUrl, "auth_url", "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token", "auth url")
+	crcSyncCmd.Flags().StringVar(&kwargs.Token, "token", "", "authentication token")
+	crcSyncCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where to store the data")
+	crcSyncCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just sync collections")
+	crcSyncCmd.Flags().BoolVar(&kwargs.RolesOnly, "roles", false, "just sync roles")
+	crcSyncCmd.Flags().BoolVar(&kwargs.ArtifactsOnly, "artifacts", false, "just sync the artifacts")
+	crcSyncCmd.Flags().StringVar(&kwargs.Namespace, "namespace", "", "namespace")
+	crcSyncCmd.Flags().StringVar(&kwargs.Name, "name", "", "name")
+	crcSyncCmd.Flags().StringVar(&kwargs.Version, "version", "", "version")
+	crcSyncCmd.Flags().IntVar(&kwargs.DownloadConcurrency, "concurrency", 1, "concurrency")
+	crcSyncCmd.Flags().BoolVar(&kwargs.LatestOnly, "latest", false, "get only the latest version")
+	crcSyncCmd.Flags().StringVarP(&kwargs.RequirementsFile, "requirements", "r", "", "requirements file")
+	crcSyncCmd.Flags().BoolVar(&kwargs.Verbose, "verbose", false, "use debug output")
+	crcSyncCmd.MarkFlagRequired("dest")
 
 	roleCmd.AddCommand(initCmd)
 	roleCmd.AddCommand(roleInstallCmd)
@@ -180,6 +210,7 @@ func Execute() {
 
 	rootCmd.AddCommand(createRepoCmd)
 	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(crcSyncCmd)
 	rootCmd.AddCommand(roleCmd)
 	rootCmd.AddCommand(collectionCmd)
 	//rootCmd.AddCommand(repoCmd)

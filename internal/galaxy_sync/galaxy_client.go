@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+    "io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,8 +16,94 @@ import (
 )
 
 type CachedGalaxyClient struct {
-	baseUrl   string
-	cachePath string
+	baseUrl     string
+    authUrl     string
+    token       string
+    accessToken string
+    apiPrefix   string
+	cachePath   string
+}
+
+func NewCachedGalaxyClient(baseUrl string, authUrl string, token string, apiPrefix string, cachePath string) CachedGalaxyClient {
+
+    // create the access token if there is an authUrl ...
+	var accessToken string
+
+	// If authUrl is provided, fetch the access token
+	if authUrl != "" {
+		// Prepare the form data
+		formData := url.Values{}
+		formData.Set("grant_type", "refresh_token")
+		formData.Set("client_id", "cloud-services")
+		formData.Set("refresh_token", token)
+		fmt.Printf("Form Data: %s\n", formData.Encode())
+
+		// Create the HTTP POST request
+		resp, err := http.PostForm(authUrl, formData)
+		if err != nil {
+			fmt.Printf("Error making request to authUrl: %v\n", err)
+			return CachedGalaxyClient{}
+		}
+		defer resp.Body.Close()
+
+		// Read the response body
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("Error reading response body: %v\n", err)
+			return CachedGalaxyClient{}
+		}
+
+		// Parse the response JSON
+		var respData map[string]interface{}
+		err = json.Unmarshal(body, &respData)
+		if err != nil {
+			fmt.Printf("Error unmarshalling response JSON: %v\n", err)
+			return CachedGalaxyClient{}
+		}
+
+		// Extract the access token
+		if newtoken, ok := respData["access_token"].(string); ok {
+            logrus.Infof("Access token: %s\n", newtoken)
+			accessToken = newtoken
+		} else {
+			fmt.Printf("Access token not found in response: %v\n", respData)
+		}
+	}
+
+	return CachedGalaxyClient{
+		baseUrl: baseUrl,
+        authUrl: authUrl,
+        token: token,
+        accessToken: accessToken,
+        apiPrefix: apiPrefix,
+        cachePath: cachePath,
+	}
+}
+
+func (c *CachedGalaxyClient) GetUrl(url string) (resp *http.Response, err error) {
+	logrus.Infof("GET URL %s", url)
+
+	// Create a new HTTP request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Errorf("Error creating HTTP request: %v", err)
+		return nil, err
+	}
+
+	// Add Authorization header if accessToken is non-empty
+	if c.accessToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+		logrus.Infof("Added Authorization header with token")
+	}
+
+	// Use the default HTTP client to send the request
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		logrus.Errorf("Error making HTTP request: %v", err)
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // Role represents a single role in the response
@@ -239,14 +327,16 @@ func (c *CachedGalaxyClient) loadCollectionVersionDetailFromCache(path string, r
 }
 
 func (c *CachedGalaxyClient) fetchCollectionVersionDetailsFromServer(url string, path string, response *CollectionVersionDetail) error {
-	resp, err := http.Get(url)
+	logrus.Infof("FETCH_COLLECTION_VERSION_DETAILS %s", url)
+	//resp, err := http.Get(url)
+	resp, err := c.GetUrl(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+		return fmt.Errorf("failed to fetch collection version details: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -272,14 +362,16 @@ func (c *CachedGalaxyClient) loadVersionsFromCache(path string, response *RoleVe
 
 // fetchFromServer fetches the response from the server and saves it to the cache file
 func (c *CachedGalaxyClient) fetchFromServer(url, cacheFile string, response *RolesResponse) error {
-	resp, err := http.Get(url)
+	logrus.Infof("FETCH_ROLES %s", url)
+	//resp, err := http.Get(url)
+	resp, err := c.GetUrl(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+		return fmt.Errorf("failed to fetch: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -296,14 +388,16 @@ func (c *CachedGalaxyClient) fetchFromServer(url, cacheFile string, response *Ro
 
 // fetchFromServer fetches the response from the server and saves it to the cache file
 func (c *CachedGalaxyClient) fetchCollectionsFromServer(url, cacheFile string, response *CollectionResponse) error {
-	resp, err := http.Get(url)
+	logrus.Infof("FETCH_COLLECTIONS %s", url)
+	//resp, err := http.Get(url)
+	resp, err := c.GetUrl(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+		return fmt.Errorf("failed to fetch collections: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -319,14 +413,16 @@ func (c *CachedGalaxyClient) fetchCollectionsFromServer(url, cacheFile string, r
 }
 
 func (c *CachedGalaxyClient) fetchVersionsFromServer(url, cacheFile string, response *RoleVersionsResponse) error {
-	resp, err := http.Get(url)
+	logrus.Infof("FETCH_ROLE_VERSIONS %s", url)
+	//resp, err := http.Get(url)
+	resp, err := c.GetUrl(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch roles: %s", resp.Status)
+		return fmt.Errorf("failed to fetch role versions: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -429,7 +525,8 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 	//var allCollections []Collection
 	var allCollectionVersionDetails []CollectionVersionDetail
 
-	url := fmt.Sprintf("%s/api/v3/plugin/ansible/search/collection-versions/", c.baseUrl)
+	//url := fmt.Sprintf("%s/api/v3/plugin/ansible/search/collection-versions/", c.baseUrl)
+	url := fmt.Sprintf("%s%s/v3/plugin/ansible/search/collection-versions/", c.baseUrl, c.apiPrefix)
 	if namespace != "" && name != "" {
 		url = url + fmt.Sprintf("?namespace=%s&name=%s", namespace, name)
 	} else if namespace != "" {
@@ -472,9 +569,12 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 			logrus.Debugf("process collection result: %v\n", col)
 			// need to get the details page to find the download url ...
 			// /api/v3/plugin/ansible/content/published/collections/index/geerlingguy/mac/versions/4.0.1/
+            //logrus.Infof("%v\n", col)
 			detailsUrl := fmt.Sprintf(
-				"%s/api/v3/plugin/ansible/content/published/collections/index/%s/%s/versions/%s/",
+				"%s%s/v3/plugin/ansible/content/%s/collections/index/%s/%s/versions/%s/",
 				c.baseUrl,
+				c.apiPrefix,
+                col.Repository.Name,
 				col.CollectionVersion.Namespace,
 				col.CollectionVersion.Name,
 				col.CollectionVersion.Version,
