@@ -49,20 +49,20 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 	utils.MakeDirs(rolesDir)
 
 	// make the api client
-    /*
-	apiClient := CachedGalaxyClient{
-		baseUrl:   server,
-        authUrl:   kwargs.AuthUrl,
-        apiPrefix: kwargs.ApiPrefix,
-        token:     kwargs.Token,
-		cachePath: cacheDir,
-	}
+	/*
+		apiClient := CachedGalaxyClient{
+			baseUrl:   server,
+	        authUrl:   kwargs.AuthUrl,
+	        apiPrefix: kwargs.ApiPrefix,
+	        token:     kwargs.Token,
+			cachePath: cacheDir,
+		}
 	*/
 	apiClient := NewCachedGalaxyClient(
 		server,
-        kwargs.AuthUrl,
-        kwargs.Token,
-        kwargs.ApiPrefix,
+		kwargs.AuthUrl,
+		kwargs.Token,
+		kwargs.ApiPrefix,
 		cacheDir,
 	)
 
@@ -173,7 +173,7 @@ func GalaxySync(kwargs *types.CmdKwargs) error {
 				fp := path.Join(collectionsDir, fn)
 				if !utils.IsFile(fp) {
 					logrus.Infof("call download of %s to %s", col.DownloadUrl, fp)
-                    if apiClient.accessToken != "" {
+					if apiClient.accessToken != "" {
 						utils.DownloadBinaryFileToPathWithBearerToken(col.DownloadUrl, apiClient.accessToken, fp)
 					} else {
 						utils.DownloadBinaryFileToPath(col.DownloadUrl, fp)

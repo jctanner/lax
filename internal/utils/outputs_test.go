@@ -24,16 +24,16 @@ func TestPrettyPrint(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Empty map",
-			input: map[string]string{},
+			name:     "Empty map",
+			input:    map[string]string{},
 			expected: `{}`,
-			wantErr: false,
+			wantErr:  false,
 		},
 		{
-			name: "Nil input",
-			input: nil,
+			name:     "Nil input",
+			input:    nil,
 			expected: `null`,
-			wantErr: false,
+			wantErr:  false,
 		},
 		{
 			name: "Complex struct",
@@ -57,10 +57,10 @@ func TestPrettyPrint(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Invalid input (unsupported type)",
-			input: make(chan int),
+			name:     "Invalid input (unsupported type)",
+			input:    make(chan int),
 			expected: "",
-			wantErr: true,
+			wantErr:  true,
 		},
 	}
 
@@ -77,4 +77,3 @@ func TestPrettyPrint(t *testing.T) {
 		})
 	}
 }
-

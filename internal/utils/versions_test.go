@@ -46,10 +46,10 @@ func TestFilterAndSortSemver(t *testing.T) {
 
 func TestGetHighestSemver(t *testing.T) {
 	tests := []struct {
-		name       string
-		versions   []string
-		expected   string
-		expectErr  bool
+		name      string
+		versions  []string
+		expected  string
+		expectErr bool
 	}{
 		{
 			name:      "Valid semantic versions",
@@ -92,12 +92,12 @@ func TestGetHighestSemver(t *testing.T) {
 
 func TestCompareSemVersions(t *testing.T) {
 	tests := []struct {
-		name       string
-		op         string
-		v1         string
-		v2         string
-		expected   bool
-		expectErr  bool
+		name      string
+		op        string
+		v1        string
+		v2        string
+		expected  bool
+		expectErr bool
 	}{
 		{
 			name:      "Greater than",

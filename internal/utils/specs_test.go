@@ -96,23 +96,23 @@ func TestSplitSpec(t *testing.T) {
 			input:    "github.com:geerlingguy.mac",
 			expected: []string{"github.com", "geerlingguy", "mac"},
 		},
-        /*
-		{
-			name:     "URL with colon-separated string",
-			input:    "https://github.com:geerlingguy.mac",
-			expected: []string{"https://github.com:geerlingguy", "mac"},
-		},
-		{
-			name:     "URL without colon-separated string",
-			input:    "https://github.com/geerlingguy.mac",
-			expected: []string{"https://github.com/geerlingguy", "mac"},
-		},
-		{
-			name:     "Git SSH URL",
-			input:    "git@github.com:geerlingguy/mac",
-			expected: []string{"git@github.com", "geerlingguy", "mac"},
-		},
-        */
+		/*
+			{
+				name:     "URL with colon-separated string",
+				input:    "https://github.com:geerlingguy.mac",
+				expected: []string{"https://github.com:geerlingguy", "mac"},
+			},
+			{
+				name:     "URL without colon-separated string",
+				input:    "https://github.com/geerlingguy.mac",
+				expected: []string{"https://github.com/geerlingguy", "mac"},
+			},
+			{
+				name:     "Git SSH URL",
+				input:    "git@github.com:geerlingguy/mac",
+				expected: []string{"git@github.com", "geerlingguy", "mac"},
+			},
+		*/
 		{
 			name:     "String without periods",
 			input:    "github",

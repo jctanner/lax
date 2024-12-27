@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-    "io/ioutil"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,16 +17,16 @@ import (
 
 type CachedGalaxyClient struct {
 	baseUrl     string
-    authUrl     string
-    token       string
-    accessToken string
-    apiPrefix   string
+	authUrl     string
+	token       string
+	accessToken string
+	apiPrefix   string
 	cachePath   string
 }
 
 func NewCachedGalaxyClient(baseUrl string, authUrl string, token string, apiPrefix string, cachePath string) CachedGalaxyClient {
 
-    // create the access token if there is an authUrl ...
+	// create the access token if there is an authUrl ...
 	var accessToken string
 
 	// If authUrl is provided, fetch the access token
@@ -63,7 +63,7 @@ func NewCachedGalaxyClient(baseUrl string, authUrl string, token string, apiPref
 
 		// Extract the access token
 		if newtoken, ok := respData["access_token"].(string); ok {
-            logrus.Infof("Access token: %s\n", newtoken)
+			logrus.Infof("Access token: %s\n", newtoken)
 			accessToken = newtoken
 		} else {
 			fmt.Printf("Access token not found in response: %v\n", respData)
@@ -71,12 +71,12 @@ func NewCachedGalaxyClient(baseUrl string, authUrl string, token string, apiPref
 	}
 
 	return CachedGalaxyClient{
-		baseUrl: baseUrl,
-        authUrl: authUrl,
-        token: token,
-        accessToken: accessToken,
-        apiPrefix: apiPrefix,
-        cachePath: cachePath,
+		baseUrl:     baseUrl,
+		authUrl:     authUrl,
+		token:       token,
+		accessToken: accessToken,
+		apiPrefix:   apiPrefix,
+		cachePath:   cachePath,
 	}
 }
 
@@ -569,12 +569,12 @@ func (c *CachedGalaxyClient) GetCollections(namespace string, name string, lates
 			logrus.Debugf("process collection result: %v\n", col)
 			// need to get the details page to find the download url ...
 			// /api/v3/plugin/ansible/content/published/collections/index/geerlingguy/mac/versions/4.0.1/
-            //logrus.Infof("%v\n", col)
+			//logrus.Infof("%v\n", col)
 			detailsUrl := fmt.Sprintf(
 				"%s%s/v3/plugin/ansible/content/%s/collections/index/%s/%s/versions/%s/",
 				c.baseUrl,
 				c.apiPrefix,
-                col.Repository.Name,
+				col.Repository.Name,
 				col.CollectionVersion.Namespace,
 				col.CollectionVersion.Name,
 				col.CollectionVersion.Version,

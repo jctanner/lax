@@ -113,8 +113,8 @@ func Execute() {
 			if kwargs.Server == "" || kwargs.Server == "https://console.redhat.com" {
 				kwargs.Server = "https://galaxy.ansible.com"
 			}
-            kwargs.ApiPrefix = "/api"
-            kwargs.AuthUrl = ""
+			kwargs.ApiPrefix = "/api"
+			kwargs.AuthUrl = ""
 
 			fmt.Println("###########################################")
 			fmt.Printf("%v\n", kwargs)
@@ -132,10 +132,10 @@ func Execute() {
 		Short: "Sync content from console.redhat.com into a lax repo directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			SetLogLevel(&kwargs)
-			if kwargs.Server == ""  || kwargs.Server == "https://galaxy.ansible.com" {
+			if kwargs.Server == "" || kwargs.Server == "https://galaxy.ansible.com" {
 				kwargs.Server = "https://console.redhat.com"
 			}
-            kwargs.ApiPrefix = "/api/automation-hub"
+			kwargs.ApiPrefix = "/api/automation-hub"
 			if kwargs.AuthUrl == "" {
 				kwargs.AuthUrl = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
 			}
@@ -145,7 +145,6 @@ func Execute() {
 			}
 		},
 	}
-
 
 	createRepoCmd.Flags().StringVar(&kwargs.DestDir, "dest", "", "where the files are")
 	createRepoCmd.Flags().BoolVar(&kwargs.CollectionsOnly, "collections", false, "just process collections")

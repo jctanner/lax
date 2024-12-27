@@ -78,36 +78,36 @@ func DownloadBinaryFileToPathWithBearerToken(urlStr string, token string, filePa
 	logrus.Debugf("Downloading w/ token %s -> %s\n", urlStr, filePath)
 
 	/*
-	// Create a new HTTP request
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		logrus.Errorf("Error creating HTTP request: %v", err)
-		return nil, err
-	}
+		// Create a new HTTP request
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			logrus.Errorf("Error creating HTTP request: %v", err)
+			return nil, err
+		}
 
-	// Add Authorization header if accessToken is non-empty
-	if c.accessToken != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-		logrus.Infof("Added Authorization header with token")
-	}
+		// Add Authorization header if accessToken is non-empty
+		if c.accessToken != "" {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+			logrus.Infof("Added Authorization header with token")
+		}
 
-	// Use the default HTTP client to send the request
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		logrus.Errorf("Error making HTTP request: %v", err)
-		return nil, err
-	}
+		// Use the default HTTP client to send the request
+		resp, err = http.DefaultClient.Do(req)
+		if err != nil {
+			logrus.Errorf("Error making HTTP request: %v", err)
+			return nil, err
+		}
 
-	return resp, nil
+		return resp, nil
 	*/
 
 	// Make the HTTP GET request
 	/*
-	resp, err := http.Get(urlStr)
-	if err != nil {
-		return "", fmt.Errorf("failed to download file: %v", err)
-	}
-	defer resp.Body.Close()
+		resp, err := http.Get(urlStr)
+		if err != nil {
+			return "", fmt.Errorf("failed to download file: %v", err)
+		}
+		defer resp.Body.Close()
 	*/
 
 	req, err := http.NewRequest("GET", urlStr, nil)
@@ -116,14 +116,14 @@ func DownloadBinaryFileToPathWithBearerToken(urlStr string, token string, filePa
 		return "", err
 	}
 
-    // add the token
+	// add the token
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	/*
-	// Check if the request was successful
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to download file: status code %d", resp.StatusCode)
-	}
+		// Check if the request was successful
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("failed to download file: status code %d", resp.StatusCode)
+		}
 	*/
 
 	resp, err := http.DefaultClient.Do(req)
